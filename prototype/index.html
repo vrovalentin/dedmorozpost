@@ -51,6 +51,10 @@ button:disabled { cursor: default; opacity: .75; }
 .cell.drift { background: var(--snow); }
 .cell.drift::after { content: "❄"; color: #b9cbe3; font-size: .7em; }
 .cell.drift.gift::after { content: "🪄"; font-size: .6em; opacity: .8; }
+.cell.drift.t2 { background: #c7d8ee; }
+.cell.drift.t3 { background: #8fc9e6; box-shadow: inset 0 0 0 2px #d8f1ff; }
+.cell.drift.t3:not(.gift)::after { content: "🧊"; color: inherit; font-size: .6em; }
+.cell.drift .lv { color: #3d5a80; }
 .cell.gen { background: #7a4b2a; box-shadow: inset 0 0 0 2px var(--gold); cursor: pointer; }
 .cell.wand { box-shadow: inset 0 0 0 2px var(--ice); }
 .cell.need { box-shadow: inset 0 0 0 2px var(--gold); }
@@ -98,7 +102,7 @@ button:disabled { cursor: default; opacity: .75; }
     <div class="bin" id="bin" title="Перетащи сюда лишний предмет">🗑</div>
   </div>
   <button id="reply" class="reply" hidden></button>
-  <div class="tip" id="tip">Тапни по мастерской 🛠 и сливай одинаковые игрушки. Звёзды за письма строят терем, а этажи терема открывают новое.</div>
+  <div class="tip" id="tip">Тапни по мастерской 🛠 и сливай одинаковые игрушки. Сливай рядом с сугробами, чтобы их растопить. Толстые тают только от предметов повыше.</div>
   <div class="tools">
     <button id="ad">+25 ❄ за рекламу (заглушка)</button>
     <button id="reset">Начать заново</button>
@@ -107,11 +111,11 @@ button:disabled { cursor: default; opacity: .75; }
 
 <script>
 (function () {
-  var COLS = 7, ROWS = 9, MAXE = 100, REGEN_MS = 120000, KEY = "pochta-proto-v4", REPLY_MS = 90000;
+  var MAXL = 10, MELT = [0, 2, 3, 5], COLS = 7, ROWS = 9, MAXE = 100, REGEN_MS = 120000, KEY = "pochta-proto-v5", REPLY_MS = 90000;
   var CH = {
-    toys:    { name: "Игрушки",  it: ["🪵","🧱","🪀","🪆","🐴","🎠","🏠"] },
-    sweets:  { name: "Сладости", it: ["🧂","🍬","🍭","🍪","🍫","🎂","🏡"] },
-    clothes: { name: "Одежда",   it: ["🧶","🧤","🧢","🧣","👕","🥾","🧥"] }
+    toys:    { name: "Игрушки",  it: ["🪵","🧱","🪀","🪆","🐴","🧸","🚂","🎠","🏰","🎡"] },
+    sweets:  { name: "Сладости", it: ["🧂","🍬","🍭","🍪","🍩","🧁","🍫","🥧","🎂","🏡"] },
+    clothes: { name: "Одежда",   it: ["🧶","🧤","🧦","🧢","🧣","👕","👖","🥾","🧥","🎅"] }
   };
   var GEN = {
     work: { icon: "🛠", name: "Мастерская", drops: [["toys", 1]], at: [2, 2] },
@@ -159,12 +163,14 @@ button:disabled { cursor: default; opacity: .75; }
     var cells = [];
     for (var i = 0; i < COLS * ROWS; i++) cells.push(null);
     cells[idx(2, 2)] = { g: "work" };
-    // Snowdrifts over the lower rows and the corners; some hide a magic wand, the only source of wands.
+    // Snowdrifts over the lower rows and the corners. Deeper rows are thicker: d=1 thin (any merge melts it),
+    // d=2 thick (needs a merged item of level 3+ next to it), d=3 ice (level 5+). Some hide a magic wand.
     for (var r = 0; r < ROWS; r++) for (var c = 0; c < COLS; c++) {
       var covered = r >= 5 || (r >= 4 && (c === 0 || c === 6));
       if (covered) {
-        var hid = Math.random() < .3 ? { w: 1 } : null;
-        cells[idx(c, r)] = { d: 1, hid: hid };
+        var d = r <= 5 ? 1 : r === 6 ? (Math.random() < .5 ? 1 : 2) : r === 7 ? (Math.random() < .3 ? 3 : 2) : (Math.random() < .6 ? 3 : 2);
+        var hid = Math.random() < (.15 + .1 * d) ? { w: 1 } : null;
+        cells[idx(c, r)] = { d: d, hid: hid };
       }
     }
     var s = { cells: cells, e: MAXE, t: Date.now(), stars: 0, bank: 0, sent: 0, parts: 0, letters: [], ad: 0, replies: [], gens: { work: 1 } };
@@ -175,14 +181,14 @@ button:disabled { cursor: default; opacity: .75; }
   function idx(c, r) { return r * COLS + c; }
 
   function makeLetter(s) {
-    var top = Math.min(5, 2 + Math.floor(s.sent / 4));      // requests grow from level 2 to 5
+    var top = Math.min(7, 2 + Math.floor(s.sent / 3));      // requests grow from level 2 to 7
     var n = s.sent >= 3 && Math.random() < .4 ? 2 : 1, want = [];
     for (var i = 0; i < n; i++) want.push({ c: pick(chains()), l: 2 + rnd(top - 1) });
     return { who: pick(NAMES), city: pick(CITIES), say: pick(SAYS), want: want };
   }
 
-  // Reply reward by the letter's level: the hardest item asked for. Level 2 item = letter level 1, 3 = 2, 4 and up = 3.
-  function tier(L) { var m = 0; L.want.forEach(function (w) { m = Math.max(m, w.l); }); return m <= 2 ? 1 : m === 3 ? 2 : 3; }
+  // Reply reward by the letter's level: the hardest item asked for. Items 2-3 = letter level 1, 4-5 = 2, 6 and up = 3.
+  function tier(L) { var m = 0; L.want.forEach(function (w) { m = Math.max(m, w.l); }); return m <= 3 ? 1 : m <= 5 ? 2 : 3; }
   function replyGift(L) { return [2, 6, 10][tier(L) - 1]; }
 
   function load() {
@@ -248,7 +254,11 @@ button:disabled { cursor: default; opacity: .75; }
     var b = $("board"); b.textContent = "";
     S.cells.forEach(function (x, i) {
       var d = document.createElement("div"); d.className = "cell"; d.dataset.i = i;
-      if (x && x.d) d.className += x.hid ? " drift gift" : " drift";
+      if (x && x.d) {
+        d.className += " drift t" + x.d + (x.hid ? " gift" : "");
+        if (x.d > 1) { var nd = document.createElement("span"); nd.className = "lv"; nd.textContent = MELT[x.d] + "+"; d.appendChild(nd); }
+        d.title = x.d === 1 ? "Тонкий сугроб: тает от любого слияния рядом" : (x.d === 2 ? "Толстый сугроб" : "Лёд") + ": тает, если рядом получился предмет " + MELT[x.d] + "-го уровня или выше";
+      }
       else if (x && x.g) { d.className += " gen"; d.textContent = GEN[x.g].icon; d.title = GEN[x.g].name; }
       else if (x && x.c) {
         d.textContent = CH[x.c].it[x.l - 1];
@@ -339,15 +349,17 @@ button:disabled { cursor: default; opacity: .75; }
     save(); render(best);
   }
 
-  var wandsOut = 0;
-  function melt(i) {
-    wandsOut = 0;
+  var wandsOut = 0, tooThick = 0;
+  function melt(i, lvl) {
+    wandsOut = 0; tooThick = 0;
     var c = i % COLS, r = Math.floor(i / COLS), n = 0;
     [[1,0],[-1,0],[0,1],[0,-1]].forEach(function (d) {
       var cc = c + d[0], rr = r + d[1];
       if (cc < 0 || rr < 0 || cc >= COLS || rr >= ROWS) return;
       var k = idx(cc, rr), x = S.cells[k];
-      if (x && x.d) { S.cells[k] = x.hid || null; n++; if (x.hid) wandsOut++; }
+      if (!x || !x.d) return;
+      if (lvl < MELT[x.d]) { tooThick = Math.max(tooThick, MELT[x.d]); return; }
+      S.cells[k] = x.hid || null; n++; if (x.hid) wandsOut++;
     });
     return n;
   }
@@ -355,17 +367,18 @@ button:disabled { cursor: default; opacity: .75; }
   function drop(from, to) {
     var a = S.cells[from], b = S.cells[to];
     if (from === to || !a) return;
-    if (b && b.d) { tip("Сугроб растает, если слить предметы рядом с ним."); return; }
+    if (b && b.d) { tip(b.d === 1 ? "Сугроб растает, если слить предметы рядом с ним." : "Этот сугроб растает, только если рядом получится предмет " + MELT[b.d] + "-го уровня."); return; }
     if (a.w && b && b.c) {
-      if (b.l >= 7) { tip("Это уже лучший предмет в цепочке."); return; }
+      if (b.l >= MAXL) { tip("Это уже лучший предмет в цепочке."); return; }
       S.cells[from] = null; S.cells[to] = { c: b.c, l: b.l + 1 };
       tip("Палочка сработала: " + CH[b.c].name + ", уровень " + (b.l + 1) + "."); save(); render(to); return;
     }
     if (a.c && b && b.c && a.c === b.c && a.l === b.l) {
-      if (a.l >= 7) { tip("Это уже лучший предмет в цепочке."); return; }
+      if (a.l >= MAXL) { tip("Это уже лучший предмет в цепочке."); return; }
       S.cells[from] = null; S.cells[to] = { c: a.c, l: a.l + 1 };
-      var n = melt(to);
-      tip(n > 0 ? "Растаяло сугробов: " + n + "." + (wandsOut > 0 ? " Под снегом нашлась волшебная палочка: перетащи её на любой предмет." : "") : CH[a.c].name + ": уровень " + (a.l + 1) + ".");
+      var n = melt(to, a.l + 1);
+      tip((n > 0 ? "Растаяло сугробов: " + n + "." + (wandsOut > 0 ? " Под снегом нашлась волшебная палочка: перетащи её на любой предмет." : "") : CH[a.c].name + ": уровень " + (a.l + 1) + ".") +
+        (tooThick ? " Соседний сугроб толще: растопит только предмет " + tooThick + "-го уровня." : ""));
       save(); render(to); return;
     }
     S.cells[from] = b || null; S.cells[to] = a;   // move or swap
@@ -429,7 +442,7 @@ button:disabled { cursor: default; opacity: .75; }
     setTimeout(function () { $("reset").textContent = "Начать заново"; }, 4000);
   });
 
-  S = load(); render();
+  S = load(); save(); render();
   setInterval(function () { if (!drag) { var e = S.e; regen(); if (S.e !== e) save(); $("en").textContent = S.e;
     $("enT").textContent = S.e < maxE() ? " +1 через " + Math.max(1, Math.ceil((regenMs() - (Date.now() - S.t)) / 1000)) + " с" : ""; $("ad").disabled = S.e >= maxE();
     $("reply").hidden === S.replies.some(function (r) { return r.at <= Date.now(); }) && render(); } }, 1000);
