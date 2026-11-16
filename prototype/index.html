@@ -70,6 +70,7 @@ button:disabled { cursor: default; opacity: .75; }
 .terem .pic { display: flex; flex-wrap: wrap; gap: 2px; font-size: 19px; line-height: 1.15; margin-top: 3px; }
 .terem .pic .off { filter: grayscale(1) brightness(.45); opacity: .5; }
 .terem .pic .next { filter: grayscale(1); opacity: .8; outline: 1px dashed var(--gold); border-radius: 4px; }
+.terem .pic .fx { background: rgba(255, 200, 90, .18); border-radius: 4px; }
 .reply { background: var(--gold); color: #3a2a1c; }
 .bin { width: 52px; background: var(--panel); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex: none; }
 .bin.over { box-shadow: inset 0 0 0 3px var(--red); }
@@ -97,7 +98,7 @@ button:disabled { cursor: default; opacity: .75; }
     <div class="bin" id="bin" title="Перетащи сюда лишний предмет">🗑</div>
   </div>
   <button id="reply" class="reply" hidden></button>
-  <div class="tip" id="tip">Тапни по мастерской 🛠 или кухне 🍳, сливай одинаковые предметы. Под сугробами с 🪄 лежат волшебные палочки.</div>
+  <div class="tip" id="tip">Тапни по мастерской 🛠 и сливай одинаковые игрушки. Звёзды за письма строят терем, а этажи терема открывают новое.</div>
   <div class="tools">
     <button id="ad">+25 ❄ за рекламу (заглушка)</button>
     <button id="reset">Начать заново</button>
@@ -106,15 +107,16 @@ button:disabled { cursor: default; opacity: .75; }
 
 <script>
 (function () {
-  var COLS = 7, ROWS = 9, MAXE = 100, REGEN_MS = 120000, KEY = "pochta-proto-v3", REPLY_MS = 90000;
+  var COLS = 7, ROWS = 9, MAXE = 100, REGEN_MS = 120000, KEY = "pochta-proto-v4", REPLY_MS = 90000;
   var CH = {
     toys:    { name: "Игрушки",  it: ["🪵","🧱","🪀","🪆","🐴","🎠","🏠"] },
     sweets:  { name: "Сладости", it: ["🧂","🍬","🍭","🍪","🍫","🎂","🏡"] },
     clothes: { name: "Одежда",   it: ["🧶","🧤","🧢","🧣","👕","🥾","🧥"] }
   };
   var GEN = {
-    work: { icon: "🛠", name: "Мастерская", drops: [["toys", .6], ["clothes", .4]] },
-    cook: { icon: "🍳", name: "Кухня", drops: [["sweets", 1]] }
+    work: { icon: "🛠", name: "Мастерская", drops: [["toys", 1]], at: [2, 2] },
+    cook: { icon: "🍳", name: "Кухня", drops: [["sweets", 1]], at: [4, 2] },
+    sew:  { icon: "🧵", name: "Швейная", drops: [["clothes", 1]], at: [3, 3] }
   };
   var NAMES = ["Маша","Ваня","Алиса","Тимур","Катя","Егор","Лиза","Миша","Аня","Федя","Даша","Гоша","Вера","Лёва"];
   var CITIES = ["Тверь","Казань","Омск","Тула","Псков","Чита","Сочи","Пермь","Уфа","Орёл","Томск","Вологда"];
@@ -128,9 +130,24 @@ button:disabled { cursor: default; opacity: .75; }
     "Я не дрался с братом целую неделю.",
     "Передай привет Снегурочке!"
   ];
-  var TEREM = [["🪧","Вывеска почты"],["🚪","Дверь"],["🪜","Крыльцо"],["🏮","Фонарь"],["🪟","Окно"],["📮","Почтовый ящик"],["🧱","Печная труба"],["🔔","Колокольчик"],
-    ["🎄","Ёлка во дворе"],["⛄","Снеговик-почтальон"],["🛷","Сани"],["🦌","Олень"],["🕯","Свечи в окнах"],["🧺","Корзина писем"],["🪵","Поленница"],["🔥","Печка"],
-    ["🕰","Часы на башне"],["🎀","Гирлянда"],["🧸","Полка игрушек"],["🍵","Самовар"],["🐈","Кот у печки"],["🎁","Гора подарков"],["⭐","Звезда на ёлке"],["🎆","Праздничный салют"]];
+  // Terem parts. Parts with fx change the game; the rest are decoration between them.
+  var TEREM = [["🪧","Вывеска почты"],["🍳","Кухня","cook"],["🚪","Дверь"],["🏮","Фонарь"],["📮","Почтовая башня","post"],["🪟","Окно"],
+    ["🧵","Швейная","sew"],["🎄","Ёлка во дворе"],["🕰","Часы на башне","clock"],["⛄","Снеговик-почтальон"],["🔥","Печь","oven"],["🛷","Сани"],
+    ["🧺","Кладовая снежинок","store"],["🦌","Олень"],["🕯","Свечи в окнах"],["🔔","Колокольчик"],["🎀","Гирлянда"],["🧸","Полка игрушек"],
+    ["🍵","Самовар"],["🐈","Кот у печки"],["🎁","Гора подарков"],["⭐","Звезда на ёлке"],["🎆","Праздничный салют"]];
+  var FX = {
+    cook:  "новый генератор, печёт сладости",
+    post:  "третье письмо одновременно",
+    sew:   "новый генератор, шьёт тёплые вещи",
+    clock: "снежинка восстанавливается за 1 мин 20 с, а не за 2 мин",
+    oven:  "генераторы чаще выдают предмет 2-го уровня",
+    store: "запас снежинок 130 вместо 100"
+  };
+  function has(fx) { for (var n = 0; n < S.parts; n++) if (TEREM[n][2] === fx) return true; return false; }
+  function maxE() { return has("store") ? 130 : MAXE; }
+  function regenMs() { return has("clock") ? 80000 : REGEN_MS; }
+  function slots() { return has("post") ? 3 : 2; }
+  function chains() { var a = ["toys"]; if (has("cook")) a.push("sweets"); if (has("sew")) a.push("clothes"); return a; }
   function cost(n) { return 3 + Math.floor(n / 4); }      // stars for part number n (0-based)
 
   var S, drag = null, ghost = null, tipTimer = 0;
@@ -142,7 +159,6 @@ button:disabled { cursor: default; opacity: .75; }
     var cells = [];
     for (var i = 0; i < COLS * ROWS; i++) cells.push(null);
     cells[idx(2, 2)] = { g: "work" };
-    cells[idx(4, 2)] = { g: "cook" };
     // Snowdrifts over the lower rows and the corners; some hide a magic wand, the only source of wands.
     for (var r = 0; r < ROWS; r++) for (var c = 0; c < COLS; c++) {
       var covered = r >= 5 || (r >= 4 && (c === 0 || c === 6));
@@ -151,9 +167,9 @@ button:disabled { cursor: default; opacity: .75; }
         cells[idx(c, r)] = { d: 1, hid: hid };
       }
     }
-    var s = { cells: cells, e: MAXE, t: Date.now(), stars: 0, bank: 0, sent: 0, parts: 0, letters: [], ad: 0, replies: [] };
+    var s = { cells: cells, e: MAXE, t: Date.now(), stars: 0, bank: 0, sent: 0, parts: 0, letters: [], ad: 0, replies: [], gens: { work: 1 } };
     s.letters.push({ who: "Соня", city: "Кострома", say: "Дедушка, ты только не устань! А мне можно волчок?", want: [{ c: "toys", l: 3 }] });
-    s.letters.push(makeLetter(s)); s.letters.push(makeLetter(s));
+    s.letters.push({ who: "Петя", city: "Самара", say: "Я сам застилаю кровать. Можно мне матрёшку?", want: [{ c: "toys", l: 4 }] });
     return s;
   }
   function idx(c, r) { return r * COLS + c; }
@@ -161,7 +177,7 @@ button:disabled { cursor: default; opacity: .75; }
   function makeLetter(s) {
     var top = Math.min(5, 2 + Math.floor(s.sent / 4));      // requests grow from level 2 to 5
     var n = s.sent >= 3 && Math.random() < .4 ? 2 : 1, want = [];
-    for (var i = 0; i < n; i++) want.push({ c: pick(Object.keys(CH)), l: 2 + rnd(top - 1) });
+    for (var i = 0; i < n; i++) want.push({ c: pick(chains()), l: 2 + rnd(top - 1) });
     return { who: pick(NAMES), city: pick(CITIES), say: pick(SAYS), want: want };
   }
 
@@ -172,7 +188,7 @@ button:disabled { cursor: default; opacity: .75; }
   function load() {
     try {
       var raw = localStorage.getItem(KEY);
-      if (raw) { var s = JSON.parse(raw); if (s && s.cells && s.cells.length === COLS * ROWS && s.replies) return s; }
+      if (raw) { var s = JSON.parse(raw); if (s && s.cells && s.cells.length === COLS * ROWS && s.gens) return s; }
     } catch (e) {}
     return fresh();
   }
@@ -180,9 +196,10 @@ button:disabled { cursor: default; opacity: .75; }
 
   function regen() {
     var now = Date.now();
-    if (S.e >= MAXE) { S.t = now; return; }
-    var add = Math.floor((now - S.t) / REGEN_MS);
-    if (add > 0) { S.e = Math.max(S.e, Math.min(MAXE, S.e + add)); S.t += add * REGEN_MS; if (S.e >= MAXE) S.t = now; }
+    var M = maxE(), ms = regenMs();
+    if (S.e >= M) { S.t = now; return; }
+    var add = Math.floor((now - S.t) / ms);
+    if (add > 0) { S.e = Math.max(S.e, Math.min(M, S.e + add)); S.t += add * ms; if (S.e >= M) S.t = now; }
   }
 
   function tip(text, warn) {
@@ -202,10 +219,28 @@ button:disabled { cursor: default; opacity: .75; }
     return Object.keys(need).every(function (k) { return (m[k] || 0) >= need[k]; });
   }
 
+  // Put unlocked generators on the board: their home cell if free, else the nearest free cell. Waits if the board is full.
+  function placeGens() {
+    var changed = false;
+    Object.keys(GEN).forEach(function (g) {
+      if (S.gens[g] || (g !== "work" && !has(g))) return;
+      var h = idx(GEN[g].at[0], GEN[g].at[1]), best = -1, bd = 1e9;
+      S.cells.forEach(function (x, k) {
+        if (x) return;
+        var d = Math.abs(k % COLS - GEN[g].at[0]) + Math.abs(Math.floor(k / COLS) - GEN[g].at[1]);
+        if (d < bd) { bd = d; best = k; }
+      });
+      if (best < 0) { tip("Освободи клетку: " + GEN[g].name + " ждёт места на доске.", true); return; }
+      S.cells[best] = { g: g }; S.gens[g] = 1; changed = true;
+    });
+    while (S.letters.length < slots()) { S.letters.push(makeLetter(S)); changed = true; }
+    if (changed) save();
+  }
+
   function render(popAt) {
-    regen();
+    regen(); placeGens();
     $("en").textContent = S.e;
-    $("enT").textContent = S.e < MAXE ? " +1 через " + Math.max(1, Math.ceil((REGEN_MS - (Date.now() - S.t)) / 1000)) + " с" : "";
+    $("enT").textContent = S.e < maxE() ? " +1 через " + Math.max(1, Math.ceil((regenMs() - (Date.now() - S.t)) / 1000)) + " с" : "";
     $("st").textContent = S.stars; $("sent").textContent = S.sent;
     var m = countItems(), wanted = {};
     S.letters.forEach(function (L) { L.want.forEach(function (w) { wanted[w.c + w.l] = 1; }); });
@@ -253,15 +288,17 @@ button:disabled { cursor: default; opacity: .75; }
     TEREM.forEach(function (t, n) {
       var e = document.createElement("span"); e.textContent = t[0]; e.title = t[1];
       if (n >= S.parts) e.className = n === S.parts ? "next" : "off";
+      if (t[2]) { e.className += " fx"; e.title += ": " + FX[t[2]]; }
       pic.appendChild(e);
     });
     $("tFill").style.width = S.parts >= total ? "100%" : (100 * S.bank / cost(S.parts)) + "%";
     $("tNext").textContent = S.parts >= total ? "Терем готов к празднику!" :
-      "Дальше: " + TEREM[S.parts][1] + " (ещё " + (cost(S.parts) - S.bank) + " ★)";
+      "Дальше: " + TEREM[S.parts][1] + " (ещё " + (cost(S.parts) - S.bank) + " ★)" +
+      (TEREM[S.parts][2] ? ". Даст: " + FX[TEREM[S.parts][2]] : "");
     var due = S.replies.filter(function (r) { return r.at <= Date.now(); })[0];
     $("reply").hidden = !due;
     if (due) $("reply").textContent = "✉ Ответ от " + due.who + ": «Спасибо, Дедушка!» Забрать +" + due.gift + " ❄";
-    $("ad").disabled = S.e >= MAXE;
+    $("ad").disabled = S.e >= maxE();
   }
 
   function send(n) {
@@ -272,11 +309,13 @@ button:disabled { cursor: default; opacity: .75; }
       gain += w.l - 1;
     });
     S.stars += gain; S.bank += gain; S.sent++;
-    var built = 0;
-    while (S.parts < TEREM.length && S.bank >= cost(S.parts)) { S.bank -= cost(S.parts); S.parts++; built++; }
+    var built = 0, got = [];
+    while (S.parts < TEREM.length && S.bank >= cost(S.parts)) {
+      S.bank -= cost(S.parts); if (TEREM[S.parts][2]) got.push(TEREM[S.parts][1] + ": " + FX[TEREM[S.parts][2]]); S.parts++; built++;
+    }
     S.replies.push({ who: L.who, at: Date.now() + REPLY_MS, gift: replyGift(L) });
     S.letters[n] = makeLetter(S);
-    tip("Подарок уехал, получатель: " + L.who + ". +" + gain + " ★." + (built > 0 ? " В тереме появилось: " + TEREM[S.parts - 1][1] + "." : ""));
+    tip("Подарок уехал, получатель: " + L.who + ". +" + gain + " ★." + (built > 0 ? " В тереме появилось: " + TEREM[S.parts - 1][1] + "." : "") + (got.length ? " Новое! " + got.join(". ") + "." : ""));
     save(); render();
   }
 
@@ -294,9 +333,9 @@ button:disabled { cursor: default; opacity: .75; }
     if (best < 0) { tip("Нет места. Слей предметы или перетащи лишнее в корзину.", true); return; }
     var roll = Math.random(), chain = g.drops[0][0], acc = 0;
     for (var k = 0; k < g.drops.length; k++) { acc += g.drops[k][1]; if (roll < acc) { chain = g.drops[k][0]; break; } }
-    if (S.e >= MAXE) S.t = Date.now();
+    if (S.e >= maxE()) S.t = Date.now();
     S.e--;
-    S.cells[best] = { c: chain, l: Math.random() < .1 ? 2 : 1 };
+    S.cells[best] = { c: chain, l: Math.random() < (has("oven") ? .25 : .1) ? 2 : 1 };
     save(); render(best);
   }
 
@@ -366,7 +405,7 @@ button:disabled { cursor: default; opacity: .75; }
     if (!d.moved) { if (d.gen) spawn(d.i); return; }
     var t = under(e); if (!t) return;
     if (t === bin) {
-      if (d.gen) { tip("Мастерскую и кухню выбросить нельзя."); return; }
+      if (d.gen) { tip("Генераторы выбросить нельзя."); return; }
       S.cells[d.i] = null; tip("Предмет убран."); save(); render(); return;
     }
     drop(d.i, +t.dataset.i);
@@ -381,7 +420,7 @@ button:disabled { cursor: default; opacity: .75; }
     tip("Пришёл рисунок и спасибо, автор: " + r.who + ". +" + r.gift + " снежинок."); save(); render();
   });
   $("ad").addEventListener("click", function () {
-    regen(); S.e = Math.min(MAXE, S.e + 25); S.ad++; tip("Здесь будет реклама. +25 снежинок."); save(); render();
+    regen(); S.e = Math.min(maxE(), S.e + 25); S.ad++; tip("Здесь будет реклама. +25 снежинок."); save(); render();
   });
   var resetArmed = 0;
   $("reset").addEventListener("click", function () {
@@ -392,7 +431,7 @@ button:disabled { cursor: default; opacity: .75; }
 
   S = load(); render();
   setInterval(function () { if (!drag) { var e = S.e; regen(); if (S.e !== e) save(); $("en").textContent = S.e;
-    $("enT").textContent = S.e < MAXE ? " +1 через " + Math.max(1, Math.ceil((REGEN_MS - (Date.now() - S.t)) / 1000)) + " с" : ""; $("ad").disabled = S.e >= MAXE;
+    $("enT").textContent = S.e < maxE() ? " +1 через " + Math.max(1, Math.ceil((regenMs() - (Date.now() - S.t)) / 1000)) + " с" : ""; $("ad").disabled = S.e >= maxE();
     $("reply").hidden === S.replies.some(function (r) { return r.at <= Date.now(); }) && render(); } }, 1000);
 })();
 </script>
