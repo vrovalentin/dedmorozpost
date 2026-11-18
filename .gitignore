@@ -7,3 +7,9 @@ __pycache__/
 
 # Hand-cut Photoshop files of buildings (big, kept in the project folder, not in git)
 *.psd
+
+# Local assistant state and secrets
+.codex/
+.env
+.env.*
+!.env.example

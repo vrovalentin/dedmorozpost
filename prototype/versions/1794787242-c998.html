@@ -1,0 +1,401 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Почта Деда Мороза</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Neucha&family=PT+Sans:wght@400;700&display=swap">
+<style>
+/* Layout: one-screen phone column: HUD, letters, 7x9 board, terem strip. Single winter-night look by choice. */
+:root {
+  color-scheme: dark;
+  --night: #16233f;      /* page ground */
+  --panel: #223358;      /* cards, cells */
+  --cell: #2b3f6b;
+  --snow: #eef4fb;       /* text, drifts */
+  --dim: #a9b9d6;
+  --red: #d8423a;        /* Ded Moroz coat: main action */
+  --gold: #f2c35b;       /* stars, ready state */
+  --ice: #8fd0f2;        /* energy */
+  --display: "Neucha", "Comic Sans MS", cursive;
+  --body: "PT Sans", "Segoe UI", Arial, sans-serif;
+}
+html, body { height: 100%; }
+body {
+  background: var(--night); color: var(--snow); font-family: var(--body); font-size: 15px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 10px; box-sizing: border-box; display: flex; justify-content: center;
+  touch-action: manipulation; -webkit-user-select: none; user-select: none;
+}
+.app { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.hud { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hud h1 { font-family: var(--display); font-size: 22px; margin: 0; flex: 1 1 auto; font-weight: 400; }
+.chip { background: var(--panel); border-radius: 999px; padding: 4px 10px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chip.energy { color: var(--ice); } .chip.stars { color: var(--gold); }
+.chip small { font-weight: 400; color: var(--dim); }
+
+.letters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.letter { background: #f6ecd9; color: #3a2a1c; border-radius: 6px; padding: 6px 7px; display: flex; flex-direction: column; gap: 4px; min-width: 0; border-top: 4px solid var(--red); }
+.letter .who { font-family: var(--display); font-size: 15px; line-height: 1.1; }
+.letter .tier { font-size: 11px; font-weight: 700; color: #a2601a; }
+.letter .say { font-size: 11.5px; line-height: 1.25; color: #5b4632; overflow-wrap: anywhere; }
+.letter .want { display: flex; gap: 4px; flex-wrap: wrap; }
+.want span { background: #fff; border-radius: 6px; padding: 1px 4px; font-size: 17px; border: 2px solid #d9c9ab; position: relative; }
+.want span.have { border-color: #3d9a50; }
+.want span i { font-style: normal; font-size: 9px; font-weight: 700; position: absolute; right: 1px; bottom: -1px; color: #3a2a1c; }
+.letter button { margin-top: auto; }
+button { font: inherit; font-weight: 700; border: 0; border-radius: 8px; padding: 6px 8px; cursor: pointer; background: var(--cell); color: var(--snow); }
+button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+button.send { background: #c9bda6; color: #6d5d47; }
+button.send.ready { background: var(--red); color: #fff; }
+button:disabled { cursor: default; opacity: .75; }
+
+.board { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; background: var(--panel); padding: 5px; border-radius: 10px; touch-action: none; flex: 0 1 auto; }
+.cell { aspect-ratio: 1; background: var(--cell); border-radius: 7px; display: flex; align-items: center; justify-content: center; position: relative; font-size: clamp(18px, 6.2vw, 30px); line-height: 1; }
+.cell.drift { background: var(--snow); }
+.cell.drift::after { content: "❄"; color: #b9cbe3; font-size: .7em; }
+.cell.drift.gift::after { content: "🪄"; font-size: .6em; opacity: .8; }
+.cell.gen { background: #7a4b2a; box-shadow: inset 0 0 0 2px var(--gold); cursor: pointer; }
+.cell.wand { box-shadow: inset 0 0 0 2px var(--ice); }
+.cell.need { box-shadow: inset 0 0 0 2px var(--gold); }
+.cell.over { box-shadow: inset 0 0 0 3px var(--ice); }
+.cell .lv { position: absolute; right: 2px; bottom: 1px; font-size: 10px; font-weight: 700; color: var(--dim); font-family: var(--body); }
+.cell.pop { animation: pop .25s ease-out; }
+@keyframes pop { from { transform: scale(1.35); } to { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .cell.pop { animation: none; } }
+.ghost { position: fixed; pointer-events: none; z-index: 20; font-size: 34px; transform: translate(-50%, -60%); }
+
+.bar { display: flex; gap: 6px; align-items: stretch; }
+.terem { flex: 1 1 auto; min-width: 0; background: var(--panel); border-radius: 8px; padding: 6px 9px; }
+.terem b { font-family: var(--display); font-weight: 400; font-size: 16px; }
+.terem .track { height: 7px; background: var(--night); border-radius: 4px; margin-top: 4px; overflow: hidden; }
+.terem .fill { height: 100%; background: var(--gold); width: 0; transition: width .3s; }
+.terem .next { font-size: 12px; color: var(--dim); margin-top: 3px; }
+.terem .pic { display: flex; flex-wrap: wrap; gap: 2px; font-size: 19px; line-height: 1.15; margin-top: 3px; }
+.terem .pic .off { filter: grayscale(1) brightness(.45); opacity: .5; }
+.terem .pic .next { filter: grayscale(1); opacity: .8; outline: 1px dashed var(--gold); border-radius: 4px; }
+.reply { background: var(--gold); color: #3a2a1c; }
+.bin { width: 52px; background: var(--panel); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex: none; }
+.bin.over { box-shadow: inset 0 0 0 3px var(--red); }
+.tools { display: flex; gap: 6px; flex-wrap: wrap; }
+.tools button { flex: 1 1 auto; }
+.tip { font-size: 12.5px; color: var(--dim); min-height: 1.3em; text-align: center; }
+.tip.warn { color: var(--gold); }
+</style>
+
+<div class="app">
+  <div class="hud">
+    <h1>Почта Деда Мороза</h1>
+    <span class="chip energy" title="Снежинки: энергия">❄ <span id="en">100</span><small id="enT"></small></span>
+    <span class="chip stars" title="Звёзды">★ <span id="st">0</span></span>
+    <span class="chip" title="Отправлено писем">✉ <span id="sent">0</span></span>
+  </div>
+  <div class="letters" id="letters"></div>
+  <div class="board" id="board"></div>
+  <div class="bar">
+    <div class="terem"><b>Терем</b> <span id="tCount"></span>
+      <div class="pic" id="tPic"></div>
+      <div class="track"><div class="fill" id="tFill"></div></div>
+      <div class="next" id="tNext"></div>
+    </div>
+    <div class="bin" id="bin" title="Перетащи сюда лишний предмет">🗑</div>
+  </div>
+  <button id="reply" class="reply" hidden></button>
+  <div class="tip" id="tip">Тапни по мастерской 🛠 или кухне 🍳, сливай одинаковые предметы. Под сугробами с 🪄 лежат волшебные палочки.</div>
+  <div class="tools">
+    <button id="ad">+25 ❄ за рекламу (заглушка)</button>
+    <button id="reset">Начать заново</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  var COLS = 7, ROWS = 9, MAXE = 100, REGEN_MS = 120000, KEY = "pochta-proto-v3", REPLY_MS = 90000;
+  var CH = {
+    toys:    { name: "Игрушки",  it: ["🪵","🧱","🪀","🪆","🐴","🎠","🏠"] },
+    sweets:  { name: "Сладости", it: ["🧂","🍬","🍭","🍪","🍫","🎂","🏡"] },
+    clothes: { name: "Одежда",   it: ["🧶","🧤","🧢","🧣","👕","🥾","🧥"] }
+  };
+  var GEN = {
+    work: { icon: "🛠", name: "Мастерская", drops: [["toys", .6], ["clothes", .4]] },
+    cook: { icon: "🍳", name: "Кухня", drops: [["sweets", 1]] }
+  };
+  var NAMES = ["Маша","Ваня","Алиса","Тимур","Катя","Егор","Лиза","Миша","Аня","Федя","Даша","Гоша","Вера","Лёва"];
+  var CITIES = ["Тверь","Казань","Омск","Тула","Псков","Чита","Сочи","Пермь","Уфа","Орёл","Томск","Вологда"];
+  var SAYS = [
+    "Дедушка, я весь год слушался бабушку!",
+    "Я сам убираю игрушки. Почти всегда.",
+    "Мне не страшно спать без света. Честно!",
+    "Я научилась читать и пишу тебе сама.",
+    "Я кормил птиц всю осень.",
+    "Можно подарок поменьше, чтобы мама не ругалась?",
+    "Я не дрался с братом целую неделю.",
+    "Передай привет Снегурочке!"
+  ];
+  var TEREM = [["🪧","Вывеска почты"],["🚪","Дверь"],["🪜","Крыльцо"],["🏮","Фонарь"],["🪟","Окно"],["📮","Почтовый ящик"],["🧱","Печная труба"],["🔔","Колокольчик"],
+    ["🎄","Ёлка во дворе"],["⛄","Снеговик-почтальон"],["🛷","Сани"],["🦌","Олень"],["🕯","Свечи в окнах"],["🧺","Корзина писем"],["🪵","Поленница"],["🔥","Печка"],
+    ["🕰","Часы на башне"],["🎀","Гирлянда"],["🧸","Полка игрушек"],["🍵","Самовар"],["🐈","Кот у печки"],["🎁","Гора подарков"],["⭐","Звезда на ёлке"],["🎆","Праздничный салют"]];
+  function cost(n) { return 3 + Math.floor(n / 4); }      // stars for part number n (0-based)
+
+  var S, drag = null, ghost = null, tipTimer = 0;
+  var $ = function (id) { return document.getElementById(id); };
+  var rnd = function (n) { return Math.floor(Math.random() * n); };
+  var pick = function (a) { return a[rnd(a.length)]; };
+
+  function fresh() {
+    var cells = [];
+    for (var i = 0; i < COLS * ROWS; i++) cells.push(null);
+    cells[idx(2, 2)] = { g: "work" };
+    cells[idx(4, 2)] = { g: "cook" };
+    // Snowdrifts over the lower rows and the corners; some hide a magic wand, the only source of wands.
+    for (var r = 0; r < ROWS; r++) for (var c = 0; c < COLS; c++) {
+      var covered = r >= 5 || (r >= 4 && (c === 0 || c === 6));
+      if (covered) {
+        var hid = Math.random() < .3 ? { w: 1 } : null;
+        cells[idx(c, r)] = { d: 1, hid: hid };
+      }
+    }
+    var s = { cells: cells, e: MAXE, t: Date.now(), stars: 0, bank: 0, sent: 0, parts: 0, letters: [], ad: 0, replies: [] };
+    s.letters.push({ who: "Соня", city: "Кострома", say: "Дедушка, ты только не устань! А мне можно волчок?", want: [{ c: "toys", l: 3 }] });
+    s.letters.push(makeLetter(s)); s.letters.push(makeLetter(s));
+    return s;
+  }
+  function idx(c, r) { return r * COLS + c; }
+
+  function makeLetter(s) {
+    var top = Math.min(5, 2 + Math.floor(s.sent / 4));      // requests grow from level 2 to 5
+    var n = s.sent >= 3 && Math.random() < .4 ? 2 : 1, want = [];
+    for (var i = 0; i < n; i++) want.push({ c: pick(Object.keys(CH)), l: 2 + rnd(top - 1) });
+    return { who: pick(NAMES), city: pick(CITIES), say: pick(SAYS), want: want };
+  }
+
+  // Reply reward by the letter's level: the hardest item asked for. Level 2 item = letter level 1, 3 = 2, 4 and up = 3.
+  function tier(L) { var m = 0; L.want.forEach(function (w) { m = Math.max(m, w.l); }); return m <= 2 ? 1 : m === 3 ? 2 : 3; }
+  function replyGift(L) { return [2, 6, 10][tier(L) - 1]; }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) { var s = JSON.parse(raw); if (s && s.cells && s.cells.length === COLS * ROWS && s.replies) return s; }
+    } catch (e) {}
+    return fresh();
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+  function regen() {
+    var now = Date.now();
+    if (S.e >= MAXE) { S.t = now; return; }
+    var add = Math.floor((now - S.t) / REGEN_MS);
+    if (add > 0) { S.e = Math.max(S.e, Math.min(MAXE, S.e + add)); S.t += add * REGEN_MS; if (S.e >= MAXE) S.t = now; }
+  }
+
+  function tip(text, warn) {
+    var t = $("tip"); t.textContent = text; t.className = "tip" + (warn ? " warn" : "");
+    clearTimeout(tipTimer);
+  }
+
+  // How many of each wanted item lie on the board, so a letter knows if it can be sent.
+  function countItems() {
+    var m = {};
+    S.cells.forEach(function (x) { if (x && x.c) { var k = x.c + x.l; m[k] = (m[k] || 0) + 1; } });
+    return m;
+  }
+  function canSend(L, m) {
+    var need = {};
+    L.want.forEach(function (w) { var k = w.c + w.l; need[k] = (need[k] || 0) + 1; });
+    return Object.keys(need).every(function (k) { return (m[k] || 0) >= need[k]; });
+  }
+
+  function render(popAt) {
+    regen();
+    $("en").textContent = S.e;
+    $("enT").textContent = S.e < MAXE ? " +1 через " + Math.max(1, Math.ceil((REGEN_MS - (Date.now() - S.t)) / 1000)) + " с" : "";
+    $("st").textContent = S.stars; $("sent").textContent = S.sent;
+    var m = countItems(), wanted = {};
+    S.letters.forEach(function (L) { L.want.forEach(function (w) { wanted[w.c + w.l] = 1; }); });
+
+    var b = $("board"); b.textContent = "";
+    S.cells.forEach(function (x, i) {
+      var d = document.createElement("div"); d.className = "cell"; d.dataset.i = i;
+      if (x && x.d) d.className += x.hid ? " drift gift" : " drift";
+      else if (x && x.g) { d.className += " gen"; d.textContent = GEN[x.g].icon; d.title = GEN[x.g].name; }
+      else if (x && x.c) {
+        d.textContent = CH[x.c].it[x.l - 1];
+        var lv = document.createElement("span"); lv.className = "lv"; lv.textContent = x.l; d.appendChild(lv);
+        if (wanted[x.c + x.l]) d.className += " need";
+      } else if (x && x.w) { d.textContent = "🪄"; d.className += " wand"; d.title = "Волшебная палочка: перетащи на предмет, он станет на уровень выше";
+      }
+      if (i === popAt) d.className += " pop";
+      b.appendChild(d);
+    });
+
+    var box = $("letters"); box.textContent = "";
+    S.letters.forEach(function (L, n) {
+      var ok = canSend(L, m), el = document.createElement("div"); el.className = "letter";
+      var who = document.createElement("div"); who.className = "who"; who.textContent = L.who + ", " + L.city;
+      var tr = document.createElement("div"); tr.className = "tier"; tr.textContent = "★".repeat(tier(L)) + " ответ +" + replyGift(L) + " ❄";
+      var say = document.createElement("div"); say.className = "say"; say.textContent = L.say;
+      var want = document.createElement("div"); want.className = "want";
+      var left = Object.assign({}, m);
+      L.want.forEach(function (w) {
+        var s = document.createElement("span"), k = w.c + w.l;
+        s.textContent = CH[w.c].it[w.l - 1];
+        var lv = document.createElement("i"); lv.textContent = w.l; s.appendChild(lv);
+        if ((left[k] || 0) > 0) { s.className = "have"; left[k]--; }
+        s.title = CH[w.c].name + ", уровень " + w.l;
+        want.appendChild(s);
+      });
+      var btn = document.createElement("button"); btn.id = "send" + n; btn.className = "send" + (ok ? " ready" : "");
+      btn.textContent = ok ? "Отправить" : "Собери"; btn.disabled = !ok;
+      btn.addEventListener("click", function () { send(n); });
+      el.appendChild(who); el.appendChild(tr); el.appendChild(say); el.appendChild(want); el.appendChild(btn); box.appendChild(el);
+    });
+
+    var total = TEREM.length;
+    $("tCount").textContent = S.parts + " из " + total;
+    var pic = $("tPic"); pic.textContent = "";
+    TEREM.forEach(function (t, n) {
+      var e = document.createElement("span"); e.textContent = t[0]; e.title = t[1];
+      if (n >= S.parts) e.className = n === S.parts ? "next" : "off";
+      pic.appendChild(e);
+    });
+    $("tFill").style.width = S.parts >= total ? "100%" : (100 * S.bank / cost(S.parts)) + "%";
+    $("tNext").textContent = S.parts >= total ? "Терем готов к празднику!" :
+      "Дальше: " + TEREM[S.parts][1] + " (ещё " + (cost(S.parts) - S.bank) + " ★)";
+    var due = S.replies.filter(function (r) { return r.at <= Date.now(); })[0];
+    $("reply").hidden = !due;
+    if (due) $("reply").textContent = "✉ Ответ от " + due.who + ": «Спасибо, Дедушка!» Забрать +" + due.gift + " ❄";
+    $("ad").disabled = S.e >= MAXE;
+  }
+
+  function send(n) {
+    var L = S.letters[n]; if (!canSend(L, countItems())) return;
+    var gain = 0;
+    L.want.forEach(function (w) {
+      for (var i = 0; i < S.cells.length; i++) { var x = S.cells[i]; if (x && x.c === w.c && x.l === w.l) { S.cells[i] = null; break; } }
+      gain += w.l - 1;
+    });
+    S.stars += gain; S.bank += gain; S.sent++;
+    var built = 0;
+    while (S.parts < TEREM.length && S.bank >= cost(S.parts)) { S.bank -= cost(S.parts); S.parts++; built++; }
+    S.replies.push({ who: L.who, at: Date.now() + REPLY_MS, gift: replyGift(L) });
+    S.letters[n] = makeLetter(S);
+    tip("Подарок уехал, получатель: " + L.who + ". +" + gain + " ★." + (built > 0 ? " В тереме появилось: " + TEREM[S.parts - 1][1] + "." : ""));
+    save(); render();
+  }
+
+  function spawn(i) {
+    var g = GEN[S.cells[i].g];
+    regen();
+    if (S.e <= 0) { tip("Снежинки кончились. Подожди или возьми ещё за рекламу.", true); return; }
+    // Nearest free cell to the generator.
+    var gc = i % COLS, gr = Math.floor(i / COLS), best = -1, bd = 1e9;
+    S.cells.forEach(function (x, k) {
+      if (x) return;
+      var d = Math.abs(k % COLS - gc) + Math.abs(Math.floor(k / COLS) - gr);
+      if (d < bd) { bd = d; best = k; }
+    });
+    if (best < 0) { tip("Нет места. Слей предметы или перетащи лишнее в корзину.", true); return; }
+    var roll = Math.random(), chain = g.drops[0][0], acc = 0;
+    for (var k = 0; k < g.drops.length; k++) { acc += g.drops[k][1]; if (roll < acc) { chain = g.drops[k][0]; break; } }
+    if (S.e >= MAXE) S.t = Date.now();
+    S.e--;
+    S.cells[best] = { c: chain, l: Math.random() < .1 ? 2 : 1 };
+    save(); render(best);
+  }
+
+  var wandsOut = 0;
+  function melt(i) {
+    wandsOut = 0;
+    var c = i % COLS, r = Math.floor(i / COLS), n = 0;
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(function (d) {
+      var cc = c + d[0], rr = r + d[1];
+      if (cc < 0 || rr < 0 || cc >= COLS || rr >= ROWS) return;
+      var k = idx(cc, rr), x = S.cells[k];
+      if (x && x.d) { S.cells[k] = x.hid || null; n++; if (x.hid) wandsOut++; }
+    });
+    return n;
+  }
+
+  function drop(from, to) {
+    var a = S.cells[from], b = S.cells[to];
+    if (from === to || !a) return;
+    if (b && b.d) { tip("Сугроб растает, если слить предметы рядом с ним."); return; }
+    if (a.w && b && b.c) {
+      if (b.l >= 7) { tip("Это уже лучший предмет в цепочке."); return; }
+      S.cells[from] = null; S.cells[to] = { c: b.c, l: b.l + 1 };
+      tip("Палочка сработала: " + CH[b.c].name + ", уровень " + (b.l + 1) + "."); save(); render(to); return;
+    }
+    if (a.c && b && b.c && a.c === b.c && a.l === b.l) {
+      if (a.l >= 7) { tip("Это уже лучший предмет в цепочке."); return; }
+      S.cells[from] = null; S.cells[to] = { c: a.c, l: a.l + 1 };
+      var n = melt(to);
+      tip(n > 0 ? "Растаяло сугробов: " + n + "." + (wandsOut > 0 ? " Под снегом нашлась волшебная палочка: перетащи её на любой предмет." : "") : CH[a.c].name + ": уровень " + (a.l + 1) + ".");
+      save(); render(to); return;
+    }
+    S.cells[from] = b || null; S.cells[to] = a;   // move or swap
+    save(); render();
+  }
+
+  // Dragging: a ghost follows the pointer; a short press on a generator is a tap.
+  var board = $("board"), bin = $("bin");
+  board.addEventListener("pointerdown", function (e) {
+    var el = e.target.closest(".cell"); if (!el) return;
+    var i = +el.dataset.i, x = S.cells[i]; if (!x || x.d) return;
+    drag = { i: i, x0: e.clientX, y0: e.clientY, moved: false, icon: x.g ? GEN[x.g].icon : x.w ? "🪄" : CH[x.c].it[x.l - 1], gen: !!x.g };
+    e.preventDefault();
+  });
+  window.addEventListener("pointermove", function (e) {
+    if (!drag) return;
+    if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 8) {
+      drag.moved = true;
+      ghost = document.createElement("div"); ghost.className = "ghost"; ghost.textContent = drag.icon; document.body.appendChild(ghost);
+    }
+    if (!ghost) return;
+    ghost.style.left = e.clientX + "px"; ghost.style.top = e.clientY + "px";
+    var t = under(e);
+    Array.prototype.forEach.call(document.querySelectorAll(".over"), function (o) { o.classList.remove("over"); });
+    if (t) t.classList.add("over");
+  });
+  function under(e) {
+    var el = document.elementFromPoint(e.clientX, e.clientY); if (!el) return null;
+    return el.closest(".cell") || el.closest(".bin");
+  }
+  function endDrag(e, cancel) {
+    if (!drag) return;
+    var d = drag; drag = null;
+    if (ghost) { ghost.remove(); ghost = null; }
+    Array.prototype.forEach.call(document.querySelectorAll(".over"), function (o) { o.classList.remove("over"); });
+    if (cancel) return;
+    if (!d.moved) { if (d.gen) spawn(d.i); return; }
+    var t = under(e); if (!t) return;
+    if (t === bin) {
+      if (d.gen) { tip("Мастерскую и кухню выбросить нельзя."); return; }
+      S.cells[d.i] = null; tip("Предмет убран."); save(); render(); return;
+    }
+    drop(d.i, +t.dataset.i);
+  }
+  window.addEventListener("pointerup", function (e) { endDrag(e, false); });
+  window.addEventListener("pointercancel", function (e) { endDrag(e, true); });
+
+  $("reply").addEventListener("click", function () {
+    var k = -1; S.replies.forEach(function (r, i) { if (k < 0 && r.at <= Date.now()) k = i; });
+    if (k < 0) return;
+    var r = S.replies.splice(k, 1)[0]; regen(); S.e += r.gift;      // a reply may fill above the cap
+    tip("Пришёл рисунок и спасибо, автор: " + r.who + ". +" + r.gift + " снежинок."); save(); render();
+  });
+  $("ad").addEventListener("click", function () {
+    regen(); S.e = Math.min(MAXE, S.e + 25); S.ad++; tip("Здесь будет реклама. +25 снежинок."); save(); render();
+  });
+  var resetArmed = 0;
+  $("reset").addEventListener("click", function () {
+    if (Date.now() - resetArmed < 4000) { S = fresh(); save(); render(); $("reset").textContent = "Начать заново"; tip("Новая игра."); return; }
+    resetArmed = Date.now(); $("reset").textContent = "Точно? Нажми ещё раз";
+    setTimeout(function () { $("reset").textContent = "Начать заново"; }, 4000);
+  });
+
+  S = load(); render();
+  setInterval(function () { if (!drag) { var e = S.e; regen(); if (S.e !== e) save(); $("en").textContent = S.e;
+    $("enT").textContent = S.e < MAXE ? " +1 через " + Math.max(1, Math.ceil((REGEN_MS - (Date.now() - S.t)) / 1000)) + " с" : ""; $("ad").disabled = S.e >= MAXE;
+    $("reply").hidden === S.replies.some(function (r) { return r.at <= Date.now(); }) && render(); } }, 1000);
+})();
+</script>
+
+</body></html>
