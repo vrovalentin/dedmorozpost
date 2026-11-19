@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#253f40"><title>Почта Деда Мороза — мастерские</title><style>:root{color-scheme:light;--ink:#41352e;--teal:#356b68;--cream:#fff6e5;--red:#b94d43;--gold:#ebc573;font-family:"Segoe UI",Arial,sans-serif;color:var(--ink);background:#253f40}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#496764,#253f40 75%);min-height:100vh;padding:18px max(10px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))}button,summary{font:inherit;cursor:pointer}button{border:0;border-radius:10px;background:#e8e5d7;color:var(--ink);padding:10px 12px;min-height:42px;font-weight:650;touch-action:manipulation}button:disabled{cursor:default;opacity:.55}button:focus-visible,summary:focus-visible{outline:3px solid #e7ae43;outline-offset:3px}[hidden]{display:none!important}.app{max-width:540px;margin:auto;display:flex;flex-direction:column;gap:12px}.heading{display:flex;justify-content:space-between;align-items:center;gap:8px;color:#fff2d6}h1{font-family:Georgia,serif;font-size:27px;line-height:1.2;margin:4px 0}h2{font-size:20px;margin:3px 0}h3{margin:8px 0}.eyebrow{font-size:10px;letter-spacing:1.5px;font-weight:700;margin:0}.album-button{background:#fff0cd;color:#65503d;white-space:nowrap;font-size:20px}.shift-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#f7edda}.shift-heading .eyebrow{color:#bed4cd}.progress{font-size:12px;background:#ffffff12;border:1px solid #ffffff25;padding:7px 10px;border-radius:20px;white-space:nowrap}
+.letters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding-top:6px;border-top:2px solid #bfa17b}.letter{background:var(--cream);border-radius:5px 5px 12px 12px;padding:12px 9px 8px;position:relative;display:flex;flex-direction:column;gap:7px;box-shadow:0 3px 0 #172e2d35;min-width:0}.letter:before{content:"";position:absolute;top:-7px;left:calc(50% - 4px);height:14px;width:8px;border-radius:2px;background:#be8c56;box-shadow:inset -2px 0 #0002}.letter h3{font-family:Georgia,serif;font-size:16px;margin:0}.letter p{font-size:12px;line-height:1.4;margin:0}.letter .want{display:flex;gap:4px;flex-wrap:wrap;margin-top:auto}.want span{font-size:23px;background:#f1e2c8;border:2px solid transparent;border-radius:8px;padding:2px 4px;position:relative}.want .have{border-color:#588d77;background:#e4ecda}.want small{font-size:9px;position:absolute;right:1px;bottom:0;color:#574232}.letter button{padding:7px 3px;font-size:12px;min-height:36px;background:#e5d7c0}.letter button.ready{background:var(--red);color:white}.letter.done{background:#e0e8d6}.letter.done:after{content:"✓";position:absolute;right:8px;top:7px;color:#588269;font-size:20px}
+.workshop{background:#b98555;border:5px solid #9c6a42;border-radius:15px;box-shadow:0 8px 0 #172d2a66;overflow:hidden}.room{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:51px;padding:0 9px;background:linear-gradient(#6a4934,#805738);color:#ffebcd;font-size:12px;line-height:1.35}.room img{object-fit:contain;flex:none;align-self:end}.board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:7px;touch-action:none;user-select:none;-webkit-user-select:none}.cell{aspect-ratio:1;min-height:0;min-width:0;padding:0;position:relative;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#ebcda1;box-shadow:inset 0 1px 1px #fff5;font-size:clamp(22px,6vw,34px);line-height:1;touch-action:none}.cell.blocked{background:#805636;opacity:.45;box-shadow:none}.cell.gen{background:#8ab4a3;border:2px solid #e9d29d;cursor:pointer}.cell.gen:after{content:"+";position:absolute;right:3px;top:2px;font:700 12px Arial;color:#214b44}.cell.snow{background:#e5f0f3;color:#8caab6}.cell.snow.double{background:#c3dce5}.cell.frozen .icon{opacity:.65;filter:saturate(.6)}.cell.frozen:after{content:"❄";position:absolute;top:2px;left:2px;font-size:17px;color:#4382a5}.cell .level{position:absolute;right:3px;bottom:3px;font-size:10px;line-height:1;color:#694b32}.cell.snow .level{color:#4f788b}.cell.needed{box-shadow:inset 0 0 0 2px #bd893b}.cell.selected{outline:3px solid #fff6ce;outline-offset:-3px;background:#f5dda8}.cell.over{outline:3px solid #3d7e78;outline-offset:-3px}.cell.hint{animation:breathe 1.8s ease-in-out infinite}.cell.pop .icon{animation:pop .2s ease-out}.ghost{position:fixed;pointer-events:none;z-index:20;font-size:40px;transform:translate(-50%,-60%);filter:drop-shadow(0 3px 2px #0004)}.table-footer{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 8px 8px;font-size:12px}.table-footer button{font-size:12px;background:#f5dfb8;min-height:36px;flex:none}.table-footer button.over{background:#80b6a2;outline:2px solid #fff4c8}
+.guide{background:#f0eddf;color:#475b51;padding:11px 13px;border-radius:12px;border-left:4px solid #9ab7a4;line-height:1.4;font-size:13px}.guide p{margin:0;min-height:36px}.guide.warning{border-color:#e4ae53}.guide button{margin-top:8px;background:#e8c989}.completion{padding:18px;background:#fff1cc;border:2px solid #e9c473;border-radius:14px;line-height:1.5}.completion h2{font-family:Georgia,serif;font-size:25px;margin-top:7px}.completion p{font-size:14px}.primary{background:var(--teal);color:white}.tools{display:flex;gap:6px;flex-wrap:wrap}.tools button{flex:1;font-size:12px;padding:10px 8px}.chains{color:#ecdfc7;font-size:12px;background:#ffffff09;padding:11px 13px;border-radius:10px}.chains summary{font-size:13px}.chain-row{line-height:1.6;padding-top:10px}.chain-row .steps{display:flex;align-items:center;gap:4px;margin-top:4px;flex-wrap:wrap}.chain-row .step{background:#ffffff0e;border-radius:6px;padding:3px 5px}.save-status,footer{font-size:11px;color:#b7ccc3;text-align:center;margin:0}footer{padding-bottom:8px}dialog{width:min(94vw,500px);max-height:85dvh;border:0;border-radius:17px;background:#fff6e5;color:var(--ink);padding:22px;line-height:1.5}dialog::backdrop{background:#122e2be0}.dialog-heading{display:flex;justify-content:space-between;align-items:center;gap:8px}.dialog-heading button{flex:none;background:#e7ddc7}.album-entry{border-top:1px solid #ddceb4;padding:12px 0;font-size:13px}.album-entry p{margin:4px 0}.improvements{font-size:12px;color:#476556;margin:12px 0}.drawing{width:100%;max-height:220px}#reply{border:2px dashed #d7bb80;border-radius:12px;padding:12px;margin:14px 0}#reply p{font-size:14px}
+@keyframes pop{from{transform:scale(1.3)}to{transform:scale(1)}}@keyframes breathe{50%{box-shadow:inset 0 0 0 3px #fff6ca}}@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important}}@media(max-width:380px){body{padding-top:10px}.app{gap:9px}h1{font-size:23px}.heading .eyebrow{font-size:8px;letter-spacing:1px}.letter{padding:11px 7px 7px}.letter p{font-size:11px}.letter h3{font-size:14px}.board{gap:3px;padding:5px}.cell{border-radius:6px}.want span{font-size:21px}.table-footer{font-size:11px}.tools button{font-size:11px}}@media(min-width:800px){body{padding-top:24px}.app{max-width:500px}}
+.resources{display:grid;grid-template-columns:1fr 1fr;gap:8px}.resource{background:#e4eee5;border:1px solid #c4ded5;border-radius:12px;padding:8px 13px;font-size:23px;display:flex;gap:7px;align-items:center;flex-wrap:wrap}.resource strong{font-size:20px}.resource small{font-size:11px;flex-basis:100%;color:#526b62}.resource.gratitude{background:#fff0dd;border-color:#e5c8a8;color:#a04e46}.goal{display:flex;gap:12px;align-items:center;justify-content:space-between;background:#ffffff10;border:1px solid #ffffff25;border-radius:12px;padding:11px 13px;color:#f8e8c9}.goal h3{font-size:15px}.goal p{font-size:11px;line-height:1.5;margin:4px 0}.goal>strong{white-space:nowrap}.letter-reward{color:#a05649;font-size:11px}.cell.ice{background:#add0df;box-shadow:inset 0 0 0 2px #d3edf7}.cell.part-cache{outline:2px dashed #be9959;outline-offset:-4px}.snow-panel{padding:14px;background:#e5eff1;border:2px solid #a0c7d1;border-radius:12px}.snow-panel p{font-size:13px;line-height:1.45}.snow-panel small{display:block;margin-top:8px;font-size:12px;color:#4d6a70}
+/* v8: production parts, recipes, parcels and finds */
+.part-project{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.project-part{border:1px dashed #c8c2a37a;border-radius:6px;padding:3px 6px;font-size:11px;color:#d5d2bd}.project-part.found{background:#bbd3aa;color:#294d37;border-style:solid}.part-chip{display:inline-flex;align-items:center;justify-content:center;min-width:46px;min-height:32px;border:2px solid var(--part-color);border-radius:8px;background:#fff6;font-size:17px;font-weight:700;white-space:nowrap}.part-chip.available{background:#dcebd5}.cell.component{background:color-mix(in srgb,var(--part-color) 25%,#f6e0bb);border-bottom:3px solid var(--part-color)}.cell.component .icon{font-size:clamp(18px,5vw,27px);transform:translateY(-3px)}.cell .rank{position:absolute;right:3px;bottom:2px;font-size:18px;font-weight:800;color:#483a30;line-height:1}.cell .part-letter{position:absolute;left:3px;bottom:2px;font-size:10px;color:#5e5143}.cell.distant{filter:saturate(.5);opacity:.67}.cell.distant .icon{opacity:.7}.cell.part-cache:not(.distant){outline-color:#916b2e}.gift-list{flex:1;display:flex;flex-direction:column;gap:5px}.letter .gift-list p{font-size:12px;line-height:1.4}.letter-kind{font-size:10px;color:#8e745d}.letter.retry{border:2px solid #d7ae67}.packed-label{color:#467554;font-weight:650}.mailbox{background:#e8ede4;border:1px solid #b9cbbd;border-radius:12px;padding:10px 12px;font-size:12px}.mailbox-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.mailbox-heading h3{font-size:15px;margin:0}.mailbox-heading small{font-size:10px;color:#647063}.mailbox>p{margin:6px 0;color:#617260}.mail-row{display:flex;gap:8px;justify-content:space-between;align-items:center;padding:5px 0;border-top:1px solid #c5d0bd}.mail-row button{font-size:11px;padding:6px 9px;min-height:34px}.mail-row small{color:#738171}.extra-panel{color:#f4e4cb;background:#ffffff0a;padding:9px;border-radius:10px;font-size:13px}.extra-panel .letters{margin-top:10px}.extra-panel .letter{color:var(--ink)}.bag-panel{background:#ede4d2;border-radius:12px;padding:11px 13px;font-size:13px}.bag-panel summary{font-weight:700}.bag-panel summary span{display:inline-block;background:#d9c9a9;border-radius:20px;padding:0 7px}.bag-row{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid #dacbad}.bag-row:first-child{margin-top:8px}.bag-row button{font-size:11px;min-height:36px;max-width:140px;background:#d5dfd2}.empty-note{font-size:12px;color:#7d7566}.room-decor{min-height:30px;background:#7b573c;display:flex;gap:9px;padding:3px 11px;font-size:22px;flex-wrap:wrap}.speed-control{font-size:12px;min-height:38px;background:#486662;color:#e0e8d6;border:1px dashed #adc1a4}.gift-recipe{padding:12px 0;border-top:1px solid #dfceb0}.gift-recipe h3{font-size:16px}.recipe-component{display:flex;gap:8px;align-items:center;padding:4px 0;font-size:12px}.recipe-component>span:nth-child(2){flex:1}.recipe-components{margin:9px 0}.gift-recipe button{font-size:13px}#recipe-send{width:100%;margin-top:12px}#recipe-story{font-size:13px;color:#7b6655}.catalog-workshop{padding:10px 0;border-top:1px solid #ffffff25}.catalog-workshop p{font-size:12px}.catalog-part{display:flex;gap:8px;align-items:center;margin:5px 0;font-size:12px}.catalog-gift{margin-top:8px;padding-top:7px;border-top:1px dashed #ffffff25}.catalog-gift p{margin:4px 0}.catalog-part .part-chip{color:#fff0d5}.completion button{margin-top:7px}.drawing{border:1px solid #e0d1b3;border-radius:12px}dialog button{max-width:100%}#reply-text{font-size:14px;line-height:1.6}#reply-claim{width:100%;margin-top:12px}@media(max-width:380px){.resource{padding:8px 10px}.resource strong{font-size:18px}.goal{padding:9px}.goal>strong{font-size:13px}.project-part{font-size:10px}.letter .gift-list p{font-size:11px}.cell .rank{font-size:16px}.mailbox{padding:9px}.heading h1{font-size:22px}}@supports not (background:color-mix(in srgb,red 50%,white)){.cell.component{background:#e3d1b0}}
+.letter button.packing-link{background:transparent;color:#6b7665;min-height:28px;padding:3px;font-size:10px;text-decoration:underline}
+</style></head>
+<body><main class="app">
+<header class="heading"><div><p class="eyebrow">МАЛЕНЬКАЯ ПОЧТА · БОЛЬШИЕ ЖЕЛАНИЯ</p><h1>Почта Деда Мороза</h1></div><button id="album-open" class="album-button" aria-label="Открыть альбом">✉ <span id="album-count">0</span></button></header>
+<section class="resources" aria-label="Ресурсы"><div class="resource energy">❄ <strong id="energy"></strong><small id="energy-timer"></small></div><div class="resource gratitude">♡ <strong id="thanks">0</strong><small>спасибо из ответных писем</small></div></section>
+<section class="shift-heading"><div><span id="shift-number" class="eyebrow"></span><h2 id="shift-title"></h2></div><span id="progress" class="progress"></span></section>
+<section class="goal"><div><span class="eyebrow">ЦЕЛЬ МАСТЕРСКОЙ</span><h3 id="goal-title"></h3><div id="goal-parts" class="part-project"></div></div><strong id="goal-progress"></strong></section>
+<section id="letters" class="letters" aria-label="Заказы детей"></section>
+<details id="extra-panel" class="extra-panel" hidden open><summary id="extra-summary"></summary><div id="extra-letters" class="letters"></div></details>
+<section class="mailbox"><div class="mailbox-heading"><h3>📬 Ответная почта</h3><small id="delivery-rates"></small></div><p id="mail-summary"></p><div id="mail-list"></div></section>
+<section class="workshop" aria-label="Рабочий стол"><div class="room"><span id="room-state"></span><img src="data:image/webp;base64,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" width="47" height="51" alt="Снеговик-почтальон"></div><div id="room-decor" class="room-decor" aria-label="Найденные украшения"></div><div id="board" class="board" role="group" aria-label="Поле 7 столбцов, 9 строк"></div><div class="table-footer"><span id="selection"></span><button id="return" disabled>↩ Вернуть</button></div></section>
+<section class="guide"><p id="tip" role="status" aria-live="polite"></p><button id="confirm-merge" hidden>Всё равно слить</button></section>
+<section id="snow-panel" class="snow-panel" hidden><h3 id="snow-title"></h3><p id="snow-description"></p><button id="melt" class="primary"></button><small id="snow-balance"></small></section>
+<details id="bag-panel" class="bag-panel" open><summary>🎒 Находки и инструменты <span id="bag-count">0</span></summary><div id="bag-items"></div></details>
+<section id="completion" class="completion" hidden><span class="eyebrow">ЧЕТЫРЕ ЧАСТИ НАЙДЕНЫ</span><h2 id="completion-title"></h2><p id="completion-text"></p><button id="build" class="primary">Собрать мастерскую</button><button id="next" class="primary" hidden></button></section>
+<nav class="tools"><button id="undo">↶ Отменить ход</button><button id="help">Как играть</button><button id="restart">Заново</button></nav>
+<button id="speed" class="speed-control">Быстрый тест ×10: выключен</button>
+<details class="chains"><summary>Запчасти, подарки и рост генераторов</summary><div id="catalog"></div></details>
+<p id="save-status" class="save-status"></p><footer>Мастерские, рецепты и ответные письма · v8</footer>
+</main>
+<dialog id="recipe-dialog" aria-labelledby="recipe-title"><div class="dialog-heading"><h2 id="recipe-title">Собрать подарок</h2><button id="recipe-close" aria-label="Закрыть рецепт">✕</button></div><p id="recipe-story"></p><div id="recipe-items"></div><div id="recipe-protection"></div><button id="recipe-send" class="primary">Отправить посылку</button></dialog>
+<dialog id="album-dialog" aria-labelledby="album-title"><div class="dialog-heading"><h2 id="album-title">Альбом нашей почты</h2><button id="album-close" aria-label="Закрыть альбом">✕</button></div><div id="album-body"></div></dialog>
+<dialog id="reply-dialog" aria-labelledby="reply-title"><div class="dialog-heading"><h2 id="reply-title">Ответное письмо</h2><button id="reply-close" aria-label="Закрыть ответ">✕</button></div><p id="reply-text"></p><svg id="reply-drawing" class="drawing" viewBox="0 0 320 170" role="img" aria-label="Детский рисунок: домик почты, снеговик и сердце"><rect width="320" height="170" rx="12" fill="#fff9e9"/><g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><path d="M18 149 Q92 137 159 148 T302 146" stroke="#99c6d4"/><path d="M65 137V78L170 80V137M52 79L117 28 185 80" stroke="#bc7353"/><path d="M85 92H108V114H85ZM131 137V105H151V137" stroke="#4c9a9e"/><path d="M225 57C200 39 192 64 225 83 258 63 247 40 225 57Z" stroke="#d76b6b"/><circle cx="239" cy="125" r="20" stroke="#99baca"/><circle cx="239" cy="98" r="12" stroke="#99baca"/><path d="M232 102Q239 109 246 102M226 111L253 113" stroke="#578e8a"/></g><circle cx="235" cy="96" r="1.8" fill="#5d5146"/><circle cx="243" cy="96" r="1.8" fill="#5d5146"/></svg><button id="reply-claim" class="primary"></button></dialog>
+<dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-heading"><h2 id="help-title">Как работает почта</h2><button id="help-close" aria-label="Закрыть помощь">✕</button></div>
+<p><b>Запчасти и подарки.</b> Генератор выдаёт запчасти за снежинки. Сливай одинаковые: 2 → 1 следующего уровня. Ранг указан цифрой. Техника — синие детали, швейная — розовые, творчество — зелёные.</p><p><b>Рецепты.</b> Открой письмо. Собери запчасти нужных уровней, нажми «Собрать подарок», затем «Отправить». Упакованный подарок лежит на полке письма и не занимает клетку стола.</p><p><b>Ответы.</b> Через 20 секунд приходит извещение. Открой его: 70% первых посылок доходят, 20% теряются, 10% повреждаются. Только успешный ответ даёт 1 ♡. Потерянный подарок надо собрать повторно — повторная отправка гарантированно дойдёт. Надёжная бирка защищает первую отправку.</p><p><b>Снег.</b> Расчищается за 1 / 2 / 5 ♡ только рядом с открытым участком, по четырём сторонам. Слияния снег не трогают. Под ним четыре части мастерской, энергия, ножницы, бирки, украшения, открытки и письма. Последняя часть — под дальним льдом.</p><p><b>Инструменты.</b> Мешочек можно открыть позже, остаток не пропадает. Для ножниц выбери запчасть и нажми инструмент; нужна ещё одна пустая клетка. Находки не занимают рабочий стол.</p><p><b>Развитие.</b> Найди четыре части, собери мастерскую и перейди дальше. Незаконченные письма, готовые подарки и посылки сохраняются; запчасти на столе — нет. Упаковочная станция третьей смены снижает повреждения с 10% до 5% — тестовое значение.</p><p><b>Темп.</b> Запас 20 ❄, +1 каждые 30 секунд, включая время вне игры. «Быстрый тест ×10» ускоряет только ожидание: снежинка за 3 секунды, ответ за 2. Цены и вероятности не меняются.</p><p>Перетаскивай или нажимай две клетки подряд. Клавиатура: Tab, Enter/пробел; Escape снимает выбор. Старшие запчасти не заменяют младшие в рецепте.</p></dialog>
+<dialog id="restart-dialog" aria-labelledby="restart-title"><h2 id="restart-title">Начать с первой мастерской?</h2><p>Сохранение v8 будет сброшено. Старые версии и их сохранения останутся.</p><div class="tools"><button id="restart-cancel">Продолжить</button><button id="restart-confirm" class="primary">Начать заново</button></div></dialog>
+<script>
+(function (root) {
+  'use strict';
+  const CHAINS = {
+    tech: { name: 'Техника', generator: '🧰', color: '#598291', icon: '⚙',
+      names: ['Крепёж и проводки', 'Механическая сборка', 'Электромеханическая сборка', 'Электронная сборка', 'Радиомодуль', 'Блок управления', 'Умный модуль', 'Волшебное техническое ядро'],
+      gifts: ['Инерционная машинка', 'Машинка с подсветкой', 'Маленький шагающий робот', 'Пара детских раций', 'Машинка на управлении', 'Радиоуправляемый вездеход', 'Программируемый робот', 'Робот-собака'],
+      icons: ['🚗', '🚕', '🤖', '📻', '🏎', '🚙', '🤖', '🐕'] },
+    sew: { name: 'Швейная', generator: '🧵', color: '#b2738d', icon: '🧵',
+      names: ['Лоскут ткани', 'Отрез ткани', 'Набор выкроек', 'Сшитая оболочка', 'Комплект с наполнителем', 'Большая мягкая основа', 'Детали большой игрушки', 'Волшебная мягкая основа'],
+      gifts: ['Плюшевый брелок', 'Маленький плюшевый котик', 'Плюшевый зайка', 'Капибара', 'Капибара в худи', 'Игрушка-обнимашка', 'Большой плюшевый дракон', 'Огромная капибара-подушка'],
+      icons: ['🧸', '🐱', '🐰', '🧸', '🧸', '🧸', '🐲', '🛏'] },
+    art: { name: 'Творчество', generator: '🎨', color: '#759c65', icon: '🎨',
+      names: ['Цветной лист', 'Пачка бумаги', 'Комплект основ для рисования', 'Комплект инструментов', 'Комплект художественных материалов', 'Большой художественный комплект', 'Студийный комплект', 'Волшебный творческий комплект'],
+      gifts: ['Блокнот с наклейками', 'Набор раскрасок', 'Скетчбук с маркерами', 'Набор для рисования комиксов', 'Набор для скетчинга', 'Чемодан юного художника', 'Мольберт с красками', 'Большая домашняя арт-студия'],
+      icons: ['📒', '📖', '📓', '🖍', '🖌', '🧳', '🖼', '🎨'] }
+  };
+  const RECIPES = [[2, 1], [3, 1], [3, 2], [4, 3], [5, 3], [6, 4], [7, 5, 1], [8, 6, 1, 2, 3]];
+  const SNOW = { 1: { name: 'Рыхлый снег', cost: 1 }, 2: { name: 'Слежавшийся снег', cost: 2 }, 3: { name: 'Лёд', cost: 5 } };
+  const at = p => (Number(p.slice(1)) - 1) * 7 + p.charCodeAt(0) - 65;
+  const coord = i => String.fromCharCode(65 + i % 7) + (Math.floor(i / 7) + 1);
+  const SHIFTS = [
+    { title: 'Первые посылки', goal: 'Собрать швейную машинку', generators: { D1: 'tech' },
+      parts: ['Станина', 'Маховик', 'Привод', 'Игольный механизм'], partSnow: [1, 1, 2, 3],
+      start: { C3: ['tech', 1], D3: ['tech', 1], C4: ['tech', 2], D4: ['tech', 3] } },
+    { title: 'Мягкие подарки', goal: 'Собрать студию творчества', generators: { B1: 'tech', F1: 'sew' },
+      parts: ['Основание стола', 'Держатель бумаги', 'Карусель красок', 'Волшебный упаковщик'], partSnow: [1, 2, 2, 3],
+      start: { C3: ['tech', 2], D3: ['sew', 1], E3: ['sew', 1], D4: ['sew', 2] } },
+    { title: 'Почта становится надёжнее', goal: 'Собрать упаковочную станцию', generators: { B1: 'tech', D1: 'sew', F1: 'art' },
+      parts: ['Рабочая рама', 'Рулонный механизм', 'Мягкая подкладка', 'Волшебный запечатыватель'], partSnow: [1, 2, 2, 3],
+      start: { C3: ['art', 1], D3: ['art', 1], E3: ['sew', 2], D4: ['tech', 2] } }
+  ];
+  const CACHES = SHIFTS.map((shift, s) => {
+    const result = {};
+    ['B4', 'F4', 'D6', 'D9'].forEach((p, n) => { result[p] = { kind: 'part', name: shift.parts[n], snow: shift.partSnow[n], required: true }; });
+    const add = (places, value) => places.forEach(p => { result[p] = { ...value }; });
+    add(['A4', 'G4', 'B5', 'F5', 'B6', 'F6'], { kind: 'energy', name: 'Мешочек снежинок', amount: 8 });
+    add(['C7', 'E7'], { kind: 'energy', name: 'Термос Снегурочки', amount: 16 });
+    add(['C5', 'E6', 'B8'], { kind: 'scissors', name: 'Волшебные ножницы' });
+    add(['F7', 'C8'], { kind: 'tag', name: 'Бирка надёжной доставки' });
+    const decorations = [['A5', '🏮', 'Фонарик'], ['G5', '🪴', 'Ёлочка в горшке'], ['A7', '🧶', 'Уютный коврик'], ['G8', '🎀', 'Гирлянда']];
+    decorations.forEach(([p, icon, name]) => { result[p] = { kind: 'decor', name, icon }; });
+    result.B7 = { kind: 'postcard', name: 'Открытка снеговика', text: ['«В первую зиму я боялся заходить на почту: вдруг растаю? Дедушка выделил мне прохладное местечко у двери».', '«Снегурочка связала мне варежки. Руки у меня из веточек, но с варежками всё равно уютнее».', '«Однажды мы отправили посылку самим себе. Очень хотелось тоже получить письмо!»'][s] };
+    result.F8 = { kind: 'postcard', name: 'Старая открытка почты', text: '«Первую вывеску мы рисовали вместе. Буквы вышли кривые, зато дети сразу нашли дорогу».', amount: 4 };
+    result.A6 = { kind: 'letter', name: 'Письмо из сугроба' };
+    return result;
+  });
+  const item = (chain, level) => ({ chain, level });
+  function makeBoard(shift) {
+    const b = Array.from({ length: 63 }, (_, i) => {
+      const r = Math.floor(i / 7), c = i % 7;
+      if (!r) return { blocked: true };
+      if (r <= 2 || (r === 3 && c >= 2 && c <= 4)) return null;
+      return { snow: r >= 7 ? 3 : r >= 5 ? 2 : 1 };
+    });
+    for (const [p, chain] of Object.entries(SHIFTS[shift].generators)) b[at(p)] = { gen: chain };
+    for (const [p, [c, l]] of Object.entries(SHIFTS[shift].start)) b[at(p)] = item(c, l);
+    for (const [p, cache] of Object.entries(CACHES[shift])) if (cache.snow) b[at(p)] = { snow: cache.snow };
+    return b;
+  }
+  const api = { CHAINS, RECIPES, SNOW, SHIFTS, CACHES, at, coord, makeBoard, item };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.PostContent = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+</script>
+<script>
+/* Rules shared by the offline prototype and Node tests. */
+(function (root) {
+  'use strict';
+  const C = typeof module !== 'undefined' && module.exports ? require('./content.js') : root.PostContent;
+  const { CHAINS, RECIPES, SNOW, SHIFTS, CACHES, at, coord, makeBoard, item } = C;
+  const VERSION = 8, MAX_ENERGY = 20, REGEN_MS = 30000, MAIL_MS = 20000;
+  const clone = x => JSON.parse(JSON.stringify(x));
+  const key = x => x.chain + ':' + x.level;
+  const isItem = x => !!x && Object.hasOwn(CHAINS, x.chain) && Number.isInteger(x.level) && x.level >= 1 && x.level <= 8;
+  const label = x => CHAINS[x.chain].names[x.level - 1];
+  const giftName = x => CHAINS[x.chain].gifts[x.level - 1];
+  const cacheAt = (shift, i) => CACHES[shift][coord(i)];
+  const isCleared = (s, shift, cell) => s.cleared.some(x => x.shift === shift && x.cell === cell);
+  const parts = s => Object.entries(CACHES[s.shift]).filter(([, c]) => c.required).map(([p, c]) => ({ ...c, cell: at(p), found: isCleared(s, s.shift, at(p)) }));
+  const complete = s => parts(s).every(x => x.found);
+  const orderList = s => [...s.letters, ...s.extra];
+  const findOrder = (s, id) => orderList(s).find(L => L.id === id);
+  function neighbors(i) {
+    const c = i % 7, r = Math.floor(i / 7), out = [];
+    for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (c + dc >= 0 && c + dc < 7 && r + dr >= 1 && r + dr < 9) out.push((r + dr) * 7 + c + dc);
+    return out;
+  }
+  const accessible = (s, i) => !!s.board[i]?.snow && neighbors(i).some(n => s.board[n] === null || isItem(s.board[n]));
+  function count(s) { const n = {}; s.board.forEach(x => { if (isItem(x)) n[key(x)] = (n[key(x)] || 0) + 1; }); return n; }
+  const recipe = gift => RECIPES[gift.level - 1].map(l => item(gift.chain, l));
+  function canCraft(s, orderId, index) {
+    const L = findOrder(s, orderId); if (!L || !L.want[index] || L.packed[index]) return false;
+    const have = count(s), need = {};
+    recipe(L.want[index]).forEach(x => { need[key(x)] = (need[key(x)] || 0) + 1; });
+    return Object.entries(need).every(([k, n]) => (have[k] || 0) >= n);
+  }
+  const canSend = (s, id) => { const L = findOrder(s, id); return !!L && L.packed.every(Boolean); };
+  function rates(s) { return { lost: .2, damaged: s.built.includes(2) ? .05 : .1 }; }
+  function newLetter(s, side = false) {
+    const chains = Object.values(SHIFTS[s.shift].generators);
+    const sequence = s.issued++;
+    // Introduce the newly available workshop first, then alternate all available ones.
+    const chain = chains[(sequence + chains.length - 1) % chains.length];
+    const issued = s.chainIssued[chain]++;
+    const rank = Math.min(8, 2 + Math.floor(issued / 6));
+    const level = issued === 0 ? 1 : issued % 3 === 1 ? rank : Math.max(1, rank - 1);
+    s.unlocked[chain] = Math.max(s.unlocked[chain], level);
+    const names = ['Миша', 'Аня', 'Тимофей', 'Вера', 'Соня', 'Лёва', 'Маша', 'Егор', 'Лиза', 'Тимур'];
+    const who = names[(s.nextId - 1) % names.length], want = [item(chain, level)];
+    if (sequence > 5 && sequence % 7 === 0 && chains.length > 1) want.push(item(chains[0], 1));
+    const story = ['Очень жду подарок. Уже придумал, как буду с ним играть!', 'Можно подарок для наших домашних приключений?', 'Обещаю прислать тебе рисунок. Спасибо, что читаешь моё письмо!'][sequence % 3];
+    return { id: s.nextId++, who, text: side ? 'Моё письмо, кажется, потерялось в сугробе. Как здорово, что вы его нашли!' : story, want, packed: want.map(() => false), protected: false, retry: false, side };
+  }
+  function fresh(now = Date.now()) {
+    const s = { version: VERSION, shift: 0, board: makeBoard(0), letters: [], extra: [], mail: [], cleared: [], bag: [], decor: [], postcards: [], built: [], thanks: 0,
+      energy: MAX_ENERGY, energyAt: now, speed: 1, issued: 0, nextId: 1, nextMailId: 1, nextToolId: 1, moves: 0,
+      unlocked: { tech: 1, sew: 1, art: 1 }, chainIssued: { tech: 0, sew: 0, art: 0 }, rng: ((Math.floor(Math.random() * 0xffffffff) ^ now) >>> 0) || 1 };
+    for (let i = 0; i < 3; i++) s.letters.push(newLetter(s));
+    return s;
+  }
+  function validate(s) {
+    try {
+      if (!s || s.version !== VERSION || !Number.isInteger(s.shift) || !SHIFTS[s.shift]) return false;
+      for (const k of ['energy', 'thanks', 'issued', 'nextId', 'nextMailId', 'nextToolId', 'moves', 'rng']) if (!Number.isInteger(s[k]) || s[k] < 0) return false;
+      if (!s.nextId || !s.nextMailId || !s.nextToolId || !s.rng || s.rng > 0xffffffff || s.energy > MAX_ENERGY || ![1, 10].includes(s.speed) || !Number.isFinite(s.energyAt) || s.energyAt < 0) return false;
+      for (const k of ['board', 'letters', 'extra', 'mail', 'cleared', 'bag', 'decor', 'postcards', 'built']) if (!Array.isArray(s[k])) return false;
+      if (s.board.length !== 63 || s.letters.length !== 3) return false;
+      const allowed = Object.values(SHIFTS[s.shift].generators);
+      for (const c of Object.keys(CHAINS)) if (!Number.isInteger(s.unlocked?.[c]) || s.unlocked[c] < 1 || s.unlocked[c] > 8 || !Number.isInteger(s.chainIssued?.[c]) || s.chainIssued[c] < 0) return false;
+      const validOrder = L => L && Number.isInteger(L.id) && L.id > 0 && L.id < s.nextId && typeof L.who === 'string' && typeof L.text === 'string' && Array.isArray(L.want) && L.want.length > 0 && L.want.length <= 2 && L.want.every(g => isItem(g) && allowed.includes(g.chain)) && Array.isArray(L.packed) && L.packed.length === L.want.length && L.packed.every(x => typeof x === 'boolean') && typeof L.protected === 'boolean' && typeof L.retry === 'boolean';
+      if (!orderList(s).every(validOrder) || new Set(orderList(s).map(L => L.id)).size !== orderList(s).length) return false;
+      const ids = new Set();
+      for (const m of s.mail) {
+        if (!m || !Number.isInteger(m.id) || m.id <= 0 || m.id >= s.nextMailId || ids.has(m.id) || !validOrder(m.order) || !Number.isInteger(m.shift) || m.shift < 0 || m.shift > s.shift || ![1, 2].includes(m.attempt) || !['success', 'lost', 'damaged'].includes(m.outcome) || typeof m.claimed !== 'boolean' || !Number.isFinite(m.dueAt) || m.dueAt < 0) return false;
+        if (m.attempt === 2 && (m.outcome !== 'success' || !s.mail.some(p => p.order.id === m.order.id && p.attempt === 1 && p.outcome === 'lost' && p.claimed))) return false;
+        if (s.mail.some(p => p !== m && p.order.id === m.order.id && p.attempt === m.attempt)) return false;
+        ids.add(m.id);
+      }
+      let spent = 0; const clearedIds = new Set();
+      for (const c of s.cleared) {
+        if (!c || !Number.isInteger(c.shift) || c.shift < 0 || c.shift > s.shift || !Number.isInteger(c.cell) || c.cell < 7 || c.cell >= 63 || clearedIds.has(c.shift + ':' + c.cell)) return false;
+        const x = makeBoard(c.shift)[c.cell]; if (!x?.snow) return false;
+        clearedIds.add(c.shift + ':' + c.cell); spent += SNOW[x.snow].cost;
+      }
+      const successes = s.mail.filter(m => m.claimed && m.outcome === 'success');
+      if (new Set(successes.map(m => m.order.id)).size !== successes.length || s.thanks !== successes.length - spent) return false;
+      const initial = makeBoard(s.shift);
+      for (let i = 0; i < 63; i++) {
+        const x = s.board[i];
+        if (i < 7 || (initial[i]?.snow && !isCleared(s, s.shift, i))) { if (JSON.stringify(x) !== JSON.stringify(initial[i])) return false; }
+        else if (x !== null && !(isItem(x) && Object.keys(x).length === 2 && allowed.includes(x.chain))) return false;
+      }
+      // Every cleared tile must have been reachable at the time it was opened.
+      for (let shift = 0; shift <= s.shift; shift++) {
+        const temp = { board: makeBoard(shift) };
+        for (const c of s.cleared.filter(x => x.shift === shift)) { if (!accessible(temp, c.cell)) return false; temp.board[c.cell] = null; }
+      }
+      if (new Set(s.built).size !== s.built.length || !s.built.every(n => Number.isInteger(n) && n >= 0 && n <= s.shift)) return false;
+      for (const n of s.built) if (!Object.keys(CACHES[n]).filter(p => CACHES[n][p].required).every(p => isCleared(s, n, at(p)))) return false;
+      for (let n = 0; n < s.shift; n++) if (!s.built.includes(n)) return false;
+      const toolIds = new Set();
+      for (const t of s.bag) {
+        if (!t || !Number.isInteger(t.id) || t.id < 1 || t.id >= s.nextToolId || toolIds.has(t.id) || !['energy', 'scissors', 'tag'].includes(t.kind) || typeof t.name !== 'string') return false;
+        if (t.kind === 'energy' && (!Number.isInteger(t.amount) || t.amount < 1 || t.amount > 20)) return false;
+        toolIds.add(t.id);
+      }
+      if (!s.decor.every(x => x && typeof x.name === 'string' && typeof x.icon === 'string') || !s.postcards.every(x => x && typeof x.name === 'string' && typeof x.text === 'string')) return false;
+      return true;
+    } catch (_) { return false; }
+  }
+  class Game {
+    constructor(saved, now = () => Date.now(), random = null) { this.now = now; this.random = random; this.state = validate(saved) ? clone(saved) : fresh(now()); this.history = []; this.regen(); }
+    roll() {
+      if (this.random) return this.random();
+      let x = this.state.rng; x ^= x << 13; x ^= x >>> 17; x ^= x << 5; this.state.rng = x >>> 0;
+      return this.state.rng / 0x100000000;
+    }
+    regen() {
+      const s = this.state, now = this.now(), interval = REGEN_MS / s.speed;
+      if (s.energy === MAX_ENERGY || s.energyAt > now) { s.energyAt = now; return; }
+      const add = Math.floor((now - s.energyAt) / interval);
+      if (add > 0) { s.energy = Math.min(MAX_ENERGY, s.energy + add); s.energyAt = s.energy === MAX_ENERGY ? now : s.energyAt + add * interval; }
+    }
+    energySeconds() { return this.state.energy === MAX_ENERGY ? 0 : Math.max(1, Math.ceil((REGEN_MS / this.state.speed - (this.now() - this.state.energyAt)) / 1000)); }
+    remember() { this.history.push(clone(this.state)); if (this.history.length > 40) this.history.shift(); }
+    undo() {
+      if (!this.history.length) return { ok: false, text: 'Пока нечего отменять.' };
+      this.state = this.history.pop(); this.regen(); return { ok: true, text: 'Действие отменено.' };
+    }
+    act(a) {
+      this.regen(); const s = this.state, b = s.board;
+      const fail = text => ({ ok: false, text });
+      const ok = (text, pop) => ({ ok: true, text, pop });
+      if (a.type === 'speed') {
+        const speed = s.speed === 1 ? 10 : 1, ratio = s.speed / speed, now = this.now();
+        s.energyAt = now - (now - s.energyAt) * ratio;
+        s.mail.filter(m => !m.claimed && m.dueAt > now).forEach(m => { m.dueAt = now + (m.dueAt - now) * ratio; });
+        s.speed = speed; this.history = [];
+        return ok(speed === 10 ? 'Быстрый тест: энергия и доставка идут в 10 раз быстрее, цены и вероятности прежние.' : 'Обычный темп: снежинка за 30 секунд, ответ за 20 секунд.');
+      }
+      if (a.type === 'build') {
+        if (!complete(s) || s.built.includes(s.shift)) return fail('Сначала найдём четыре части.');
+        this.remember(); s.built.push(s.shift); s.moves++;
+        return ok(s.shift === 2 ? 'Упаковочная станция работает! Повреждения теперь 5% вместо 10%. Потери пока 20%.' : 'Мастерская собрана! Можно переходить к новому производству.');
+      }
+      if (a.type === 'next') {
+        if (!s.built.includes(s.shift) || s.shift === 2) return fail('Сначала собери мастерскую из найденных частей.');
+        s.shift++; s.board = makeBoard(s.shift); s.issued = 0; this.history = [];
+        return ok('Новый стол готов. Письма, упакованные подарки, посылки и находки остались с нами.');
+      }
+      if (a.type === 'spawn') {
+        const chain = b[a.from]?.gen; if (!chain) return fail('Нажми на генератор в верхнем ряду.');
+        if (!s.energy) return fail('Снежинки закончились. +1 через ' + this.energySeconds() + ' с. Можно открыть найденный мешочек или включить быстрый тест.');
+        let target = -1, distance = Infinity;
+        for (let i = 7; i < 63; i++) if (b[i] === null) { const d = Math.abs(i % 7 - a.from % 7) + Math.abs(Math.floor(i / 7) - Math.floor(a.from / 7)); if (d < distance) { distance = d; target = i; } }
+        if (target < 0) return fail('Нет места. Собери подарок, слей запчасти, верни лишнее или расчисти соседний снег.');
+        this.remember(); const bonus = s.unlocked[chain] >= 5 ? s.unlocked[chain] - 3 : 1;
+        const level = bonus > 1 && this.roll() < .2 ? bonus : 1;
+        if (s.energy === MAX_ENERGY) s.energyAt = this.now(); s.energy--; b[target] = item(chain, level); s.moves++;
+        return ok(label(b[target]) + ' · уровень ' + level + '. −1 ❄', target);
+      }
+      if (a.type === 'return') {
+        const x = b[a.from]; if (!isItem(x)) return fail('Вернуть можно только запчасть.');
+        this.remember(); b[a.from] = null; s.moves++; return ok('Освободили клетку. Снежинки за запчасть не возвращаются.');
+      }
+      if (a.type === 'craft') {
+        const L = findOrder(s, a.orderId); if (!L || !canCraft(s, L.id, a.giftIndex)) return fail('Нужен полный комплект запчастей точных уровней.');
+        this.remember();
+        for (const part of recipe(L.want[a.giftIndex])) b[b.findIndex(x => isItem(x) && key(x) === key(part))] = null;
+        L.packed[a.giftIndex] = true; s.moves++;
+        return ok(giftName(L.want[a.giftIndex]) + ' собран и лежит на упаковочной полке письма.');
+      }
+      if (a.type === 'protect') {
+        const L = findOrder(s, a.orderId), index = s.bag.findIndex(t => t.kind === 'tag');
+        if (!L || L.retry || L.protected || index < 0) return fail('Нужна найденная бирка для первой отправки. Повторная и так доходит гарантированно.');
+        this.remember(); s.bag.splice(index, 1); L.protected = true; return ok('Бирка прикреплена: эта посылка точно дойдёт целой.');
+      }
+      if (a.type === 'send') {
+        const L = findOrder(s, a.orderId); if (!L || !canSend(s, L.id)) return fail('Сначала собери все подарки письма.');
+        this.remember();
+        const chance = rates(s), roll = L.retry || L.protected ? 0 : this.roll();
+        const success = Math.round((1 - chance.lost - chance.damaged) * 100) / 100;
+        const outcome = roll < success ? 'success' : roll < success + chance.lost ? 'lost' : 'damaged';
+        s.mail.push({ id: s.nextMailId++, order: clone(L), attempt: L.retry ? 2 : 1, outcome, dueAt: this.now() + MAIL_MS / s.speed, claimed: false, shift: s.shift });
+        const normal = s.letters.findIndex(x => x.id === L.id);
+        if (normal >= 0) s.letters[normal] = newLetter(s); else s.extra.splice(s.extra.findIndex(x => x.id === L.id), 1);
+        s.moves++;
+        return ok('Посылка для ' + L.who + ' в пути. Сердечко придёт только с успешным ответом.');
+      }
+      if (a.type === 'claim') {
+        const m = s.mail.find(m => m.id === a.mailId);
+        if (!m || m.claimed || m.dueAt > this.now()) return fail('Ответ пока не пришёл или уже открыт.');
+        this.remember(); m.claimed = true;
+        if (m.outcome === 'success') { s.thanks++; return ok('Ответ: «Спасибо за подарок!» +1 ♡.'); }
+        if (m.outcome === 'damaged') return ok('Подарок повредился в дороге. За эту посылку нет сердечка. Новые письма продолжают приходить.');
+        const retry = clone(m.order); retry.retry = true; retry.protected = false; retry.packed = retry.want.map(() => false);
+        s.extra.push(retry);
+        return ok('Посылка потерялась. Повторный заказ добавлен под письмами; он гарантированно дойдёт.');
+      }
+      if (a.type === 'melt') {
+        const x = b[a.cell]; if (!x?.snow) return fail('Здесь нет снега.');
+        if (!accessible(s, a.cell)) return fail('Сначала расчисти соседнюю клетку. Добираемся от открытого стола по четырём сторонам.');
+        const cost = SNOW[x.snow].cost; if (s.thanks < cost) return fail('Нужно ' + cost + ' ♡. Отправляй подарки и открывай успешные ответные письма.');
+        this.remember(); s.thanks -= cost; b[a.cell] = null; s.cleared.push({ shift: s.shift, cell: a.cell }); s.moves++;
+        const loot = cacheAt(s.shift, a.cell);
+        if (!loot) return ok('Убрали снег. Стало больше места для работы.', a.cell);
+        if (['energy', 'scissors', 'tag'].includes(loot.kind)) s.bag.push({ id: s.nextToolId++, ...clone(loot) });
+        if (loot.kind === 'decor') s.decor.push({ ...clone(loot), source: s.shift + ':' + a.cell });
+        if (loot.kind === 'postcard') {
+          s.postcards.push({ ...clone(loot), source: s.shift + ':' + a.cell });
+          if (loot.amount) s.bag.push({ id: s.nextToolId++, kind: 'energy', name: 'Снежинки из открытки', amount: loot.amount });
+        }
+        if (loot.kind === 'letter') s.extra.push(newLetter(s, true));
+        return ok('Под снегом: ' + loot.name + (loot.kind === 'part' ? '! Часть заняла место в проекте мастерской.' : '! Находка сохранена.'), a.cell);
+      }
+      if (a.type === 'energy') {
+        const i = s.bag.findIndex(x => x.id === a.toolId && x.kind === 'energy');
+        if (i < 0 || s.energy === MAX_ENERGY) return fail('Запас уже полон. Мешочек можно оставить на потом.');
+        this.remember(); const gain = Math.min(MAX_ENERGY - s.energy, s.bag[i].amount); s.energy += gain; s.bag[i].amount -= gain;
+        if (!s.bag[i].amount) s.bag.splice(i, 1); if (s.energy === MAX_ENERGY) s.energyAt = this.now();
+        return ok('Добавили ' + gain + ' ❄. Остаток мешочка не пропадает.');
+      }
+      if (a.type === 'split') {
+        const i = s.bag.findIndex(x => x.id === a.toolId && x.kind === 'scissors'), x = b[a.cell], empty = b.indexOf(null);
+        if (i < 0 || !isItem(x) || x.level === 1) return fail('Выбери запчасть уровня 2 или выше и найденные ножницы.');
+        if (empty < 0) return fail('Для двух половинок нужна ещё одна свободная клетка. Ножницы не потрачены.');
+        this.remember(); b[a.cell] = item(x.chain, x.level - 1); b[empty] = item(x.chain, x.level - 1); s.bag.splice(i, 1); s.moves++;
+        return ok('Разделили запчасть на две предыдущего уровня.', a.cell);
+      }
+      if (a.type !== 'drop') return fail('Неизвестное действие.');
+      const { from, to } = a; if (![from, to].every(i => Number.isInteger(i) && i >= 0 && i < 63) || from === to) return fail('Выбери другую клетку.');
+      const x = b[from], y = b[to]; if (!isItem(x)) return fail('Передвигать можно только запчасти.');
+      if (y?.gen) return y.gen === x.chain ? this.act({ type: 'return', from }) : fail('У этой запчасти другой генератор.');
+      if (y?.snow || y?.blocked) return fail('Сначала расчисти снег за спасибо.');
+      if (isItem(y) && key(x) === key(y)) {
+        if (x.level === 8) return fail('Это максимальный уровень запчасти. Её используют в рецепте.');
+        const need = orderList(s).flatMap(L => L.want.flatMap((g, n) => L.packed[n] ? [] : recipe(g))).filter(p => key(p) === key(x)).length;
+        if (!a.force && need && count(s)[key(x)] - 2 < need) return { ok: false, warning: true, text: label(x) + ' нужен в рецепте. Всё равно слить?' };
+        this.remember(); b[from] = null; b[to] = item(x.chain, x.level + 1); s.moves++;
+        return ok(label(b[to]) + ' · уровень ' + b[to].level, to);
+      }
+      this.remember(); b[from] = y; b[to] = x; s.moves++;
+      return ok(y ? 'Поменяли запчасти местами.' : 'Переместили запчасть.', to);
+    }
+  }
+  const api = { ...C, VERSION, MAX_ENERGY, REGEN_MS, MAIL_MS, Game, fresh, validate, isItem, label, giftName, key, recipe, count, canCraft, canSend, findOrder, orderList, neighbors, accessible, parts, complete, cacheAt, isCleared, rates };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.PostGame = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+</script>
+<script>
+(function () {
+  'use strict';
+  const E = window.PostGame, $ = id => document.getElementById(id), KEY = 'pochta-workshops-v8';
+  let saved, loadMessage = '', storageFailed = false;
+  try { const raw = localStorage.getItem(KEY); if (raw) { saved = JSON.parse(raw); if (!E.validate(saved)) { saved = undefined; loadMessage = 'Сохранение не удалось прочитать. Начинаем заново.'; } } }
+  catch (_) { loadMessage = 'Хранилище недоступно: прогресс может не сохраниться.'; }
+  let game = new E.Game(saved), selected = null, snowSelection = null, pending = null, currentOrder = null, currentMail = null;
+  let drag = null, ghost = null, lastPointerClick = 0, mailFingerprint = '';
+  const node = (tag, cls, text) => { const x = document.createElement(tag); if (cls) x.className = cls; if (text !== undefined) x.textContent = text; return x; };
+  function button(text, fn, cls = '') { const b = node('button', cls, text); b.addEventListener('click', fn); return b; }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(game.state)); storageFailed = false; } catch (_) { storageFailed = true; }
+    $('save-status').textContent = storageFailed ? 'Не удалось сохранить. Не закрывай страницу, если хочешь продолжить.' : 'Сохраняется в этом браузере · v5–v7 не затронуты';
+  }
+  function tip(text, warn = false) { $('tip').textContent = text; $('tip').parentElement.classList.toggle('warning', warn); }
+  function intro() {
+    return game.state.mail.length ? 'Собирай подарки, жди ответов и расчищай путь за сердечки. Последняя часть мастерской — под дальним льдом.' : 'Сначала соберём машинку. Открой рецепт в письме: какие запчасти нужны? Сливай запчасти на столе, затем собирай и отправляй подарок.';
+  }
+  function clearPending() { pending = null; $('confirm-merge').hidden = true; }
+  function execute(a) {
+    clearPending(); const r = a.type === 'undo' ? game.undo() : game.act(a);
+    if (r.warning) { pending = a; $('confirm-merge').hidden = false; tip(r.text, true); return false; }
+    if (!r.ok) { tip(r.text, true); return false; }
+    selected = null; snowSelection = null; save(); render(r.pop); tip(r.text);
+    return true;
+  }
+  function partChip(p, available = false) {
+    const x = node('span', 'part-chip' + (available ? ' available' : ''), E.CHAINS[p.chain].icon + ' ' + p.level);
+    x.style.setProperty('--part-color', E.CHAINS[p.chain].color); x.title = E.label(p); x.setAttribute('aria-label', E.label(p) + ', уровень ' + p.level + (available ? ': готово' : '')); return x;
+  }
+  function renderLetter(L) {
+    const card = node('article', 'letter' + (L.retry ? ' retry' : ''));
+    card.append(node('h3', '', L.who), node('small', 'letter-kind', L.retry ? 'Повторная · точно дойдёт' : L.side ? 'Письмо из сугроба' : 'Детское письмо'));
+    const wants = node('div', 'gift-list');
+    L.want.forEach((g, n) => { const text = node('p', L.packed[n] ? 'packed-label' : '', (L.packed[n] ? '✓ ' : '') + E.CHAINS[g.chain].icons[g.level - 1] + ' ' + E.giftName(g)); wants.append(text); });
+    card.append(wants);
+    const ready = E.canSend(game.state, L.id), craftable = L.want.some((_, n) => E.canCraft(game.state, L.id, n));
+    const b = button(ready ? 'Отправить' : craftable ? 'Собрать подарок' : 'Рецепт', () => ready ? execute({ type: 'send', orderId: L.id }) : showRecipe(L.id), ready || craftable ? 'ready' : '');
+    b.dataset.order = L.id; card.append(b);
+    if (ready) card.append(button('Рецепт и упаковка', () => showRecipe(L.id), 'packing-link'));
+    return card;
+  }
+  function updateEnergy() {
+    const s = game.state;
+    $('energy').textContent = s.energy + ' / ' + E.MAX_ENERGY;
+    $('energy-timer').textContent = s.energy < E.MAX_ENERGY ? '+1 через ' + game.energySeconds() + ' с' : 'полный запас';
+    $('thanks').textContent = s.thanks;
+    $('speed').textContent = 'Быстрый тест ×10: ' + (s.speed === 10 ? 'включён · ожидание ускорено' : 'выключен');
+  }
+  function updateMailbox(force = false) {
+    const s = game.state, now = Date.now(), unclaimed = s.mail.filter(m => !m.claimed);
+    const ready = unclaimed.filter(m => m.dueAt <= now), pendingMail = unclaimed.filter(m => m.dueAt > now);
+    $('mail-summary').textContent = !s.mail.length ? 'Отправь первую посылку. Ответ придёт через ' + (E.MAIL_MS / s.speed / 1000) + ' с.' : 'В пути: ' + pendingMail.length + ' · ответов ждут открытия: ' + ready.length;
+    const chance = E.rates(s);
+    $('delivery-rates').textContent = 'Потеря ' + Math.round(chance.lost * 100) + '% · повреждение ' + Math.round(chance.damaged * 100) + '%';
+    const fingerprint = JSON.stringify(unclaimed.map(m => [m.id, m.dueAt <= now ? 'ready' : Math.ceil((m.dueAt - now) / 1000)]));
+    if (!force && fingerprint === mailFingerprint) return;
+    mailFingerprint = fingerprint;
+    const focusMail = document.activeElement?.dataset?.mail, list = document.createDocumentFragment();
+    for (const m of [...ready.slice(0, 4), ...pendingMail.slice(0, 2)]) {
+      const row = node('div', 'mail-row');
+      row.append(node('span', '', '✉ ' + m.order.who + (m.attempt === 2 ? ' · повторная' : '')));
+      if (m.dueAt <= now) { const b = button('Открыть ответ', () => showReply(m.id), 'primary'); b.dataset.mail = m.id; row.append(b); }
+      else row.append(node('small', '', 'Ответ через ' + Math.max(1, Math.ceil((m.dueAt - now) / 1000)) + ' с'));
+      list.append(row);
+    }
+    if (ready.length > 4 || pendingMail.length > 2) list.append(button('Все посылки и ответы →', showAlbum));
+    $('mail-list').replaceChildren(list);
+    if (focusMail) $('mail-list').querySelector('[data-mail="' + focusMail + '"]')?.focus({ preventScroll: true });
+  }
+  function render(popAt) {
+    const s = game.state, def = E.SHIFTS[s.shift], oldFocus = document.activeElement;
+    const focusCell = oldFocus?.dataset?.cell, focusOrder = oldFocus?.dataset?.order;
+    $('shift-number').textContent = 'МАСТЕРСКАЯ ' + (s.shift + 1) + ' ИЗ 3'; $('shift-title').textContent = def.title;
+    $('progress').textContent = 'Отправлено: ' + s.mail.filter(m => m.shift === s.shift).length;
+    $('album-count').textContent = s.mail.filter(m => m.claimed).length;
+    updateEnergy(); updateMailbox(true);
+    const parts = E.parts(s), project = document.createDocumentFragment();
+    $('goal-title').textContent = def.goal;
+    parts.forEach(p => { const chip = node('span', 'project-part' + (p.found ? ' found' : ''), (p.found ? '✓ ' : '○ ') + p.name); chip.title = p.found ? 'Найдено' : 'Под снегом ' + E.coord(p.cell) + ' · ' + E.SNOW[p.snow].cost + ' ♡'; project.append(chip); });
+    $('goal-parts').replaceChildren(project); $('goal-progress').textContent = parts.filter(p => p.found).length + ' / 4';
+    const letters = document.createDocumentFragment(); s.letters.forEach(L => letters.append(renderLetter(L))); $('letters').replaceChildren(letters);
+    $('extra-panel').hidden = !s.extra.length; $('extra-summary').textContent = 'Дополнительные и повторные письма · ' + s.extra.length;
+    const extra = document.createDocumentFragment(); s.extra.forEach(L => extra.append(renderLetter(L))); $('extra-letters').replaceChildren(extra);
+    $('room-state').textContent = s.built.length ? ['Швейная машинка готова', 'Студия творчества открыта', 'Упаковочная станция работает'][s.built.length - 1] : 'Зажгли лампу, расчищаем старую мастерскую.';
+    const decor = document.createDocumentFragment();
+    s.decor.forEach(d => { const x = node('span', '', d.icon); x.title = d.name; x.setAttribute('aria-label', d.name); decor.append(x); });
+    $('room-decor').replaceChildren(decor); $('room-decor').hidden = !s.decor.length;
+    const wanted = {};
+    E.orderList(s).forEach(L => L.want.forEach((g, n) => { if (!L.packed[n]) E.recipe(g).forEach(p => { wanted[E.key(p)] = true; }); }));
+    const cells = document.createDocumentFragment();
+    s.board.forEach((x, i) => {
+      const el = node('button', 'cell'); el.dataset.cell = i;
+      let title = E.coord(i) + ': пустая клетка', icon = '';
+      if (x?.blocked) { el.classList.add('blocked'); el.disabled = true; title = E.coord(i) + ': недоступно'; }
+      else if (x?.gen) {
+        el.classList.add('gen'); icon = E.CHAINS[x.gen].generator;
+        const bonus = s.unlocked[x.gen] >= 5 ? s.unlocked[x.gen] - 3 : 1;
+        title = E.coord(i) + ': ' + E.CHAINS[x.gen].name + '. −1 снежинка. ' + (bonus > 1 ? '80% уровня 1, 20% уровня ' + bonus : 'Запчасть уровня 1');
+        el.append(node('small', 'level', bonus > 1 ? '1 / ' + bonus : '−1❄'));
+      } else if (x?.snow) {
+        const loot = E.cacheAt(s.shift, i), reachable = E.accessible(s, i);
+        el.classList.add('snow'); if (x.snow === 2) el.classList.add('double'); if (x.snow === 3) el.classList.add('ice'); if (!reachable) el.classList.add('distant');
+        if (loot?.required) el.classList.add('part-cache');
+        icon = loot?.required ? '⚙' : loot ? '🎁' : x.snow === 3 ? '🧊' : '☁';
+        title = E.coord(i) + ': ' + E.SNOW[x.snow].name + ', ' + E.SNOW[x.snow].cost + ' ♡.' + (reachable ? ' Можно расчистить.' : ' Сначала доберись по соседним клеткам.') + (loot?.required ? ' Часть мастерской.' : '');
+        el.append(node('small', 'level', E.SNOW[x.snow].cost + '♡'));
+      } else if (E.isItem(x)) {
+        el.classList.add('component'); el.style.setProperty('--part-color', E.CHAINS[x.chain].color);
+        icon = E.CHAINS[x.chain].icon; title = E.coord(i) + ': ' + E.label(x) + ', уровень ' + x.level;
+        el.append(node('small', 'rank', x.level), node('small', 'part-letter', { tech: 'Т', sew: 'Ш', art: 'Х' }[x.chain]));
+        if (wanted[E.key(x)]) el.classList.add('needed');
+      }
+      el.prepend(node('span', 'icon', icon)); el.title = title; el.setAttribute('aria-label', title); el.setAttribute('aria-pressed', String(selected === i || snowSelection === i));
+      if (selected === i || snowSelection === i) el.classList.add('selected'); if (i === popAt) el.classList.add('pop'); cells.append(el);
+    });
+    $('board').replaceChildren(cells);
+    $('selection').textContent = selected !== null && E.isItem(s.board[selected]) ? E.label(s.board[selected]) + ' · ур. ' + s.board[selected].level : 'Запчасти на столе · подарки собираются в письмах';
+    $('return').disabled = selected === null || !E.isItem(s.board[selected]); $('undo').disabled = !game.history.length;
+    const snow = snowSelection === null ? null : s.board[snowSelection]; $('snow-panel').hidden = !snow?.snow;
+    if (snow?.snow) {
+      const loot = E.cacheAt(s.shift, snowSelection), type = E.SNOW[snow.snow], access = E.accessible(s, snowSelection);
+      $('snow-title').textContent = E.coord(snowSelection) + ' · ' + type.name;
+      $('snow-description').textContent = loot?.required ? 'Под снегом ' + loot.name + '. Эта часть нужна для цели.' : loot ? 'Здесь спрятана полезная находка. Узнаем, что это, когда расчистим снег.' : 'Освободим клетку для запчастей.';
+      $('melt').textContent = 'Расчистить · ' + type.cost + ' ♡'; $('melt').disabled = !access || s.thanks < type.cost;
+      $('snow-balance').textContent = !access ? 'Сначала расчисти соседнюю клетку с открытой стороны.' : s.thanks < type.cost ? 'Не хватает ' + (type.cost - s.thanks) + ' ♡. Они приходят с успешными ответами.' : 'Останется ' + (s.thanks - type.cost) + ' ♡.';
+    }
+    renderBag(); renderCatalog();
+    $('completion').hidden = !E.complete(s);
+    const built = s.built.includes(s.shift);
+    $('completion-title').textContent = built ? 'Мастерская работает!' : 'Можно собирать!';
+    $('completion-text').textContent = !built ? 'Четыре части на месте. Соберём их — и откроем новое производство.' : s.shift < 2 ? 'На новом столе будут другие запчасти. Письма, упакованные подарки, посылки, инструменты и ресурсы останутся.' : 'Упаковка надёжнее: повреждения 5%, потери 20%. Можно продолжить письма и исследовать оставшийся снег.';
+    $('build').hidden = built; $('next').hidden = !built || s.shift === 2; $('next').textContent = 'Убрать стол · открыть ' + (s.shift === 0 ? 'швейную' : 'студию творчества');
+    if ($('recipe-dialog').open) renderRecipe();
+    if (focusCell !== undefined) $('board').querySelector('[data-cell="' + focusCell + '"]')?.focus({ preventScroll: true });
+    if (focusOrder !== undefined) document.querySelector('[data-order="' + focusOrder + '"]')?.focus({ preventScroll: true });
+  }
+  function renderBag() {
+    const s = game.state, items = document.createDocumentFragment(); $('bag-count').textContent = s.bag.length;
+    if (!s.bag.length) items.append(node('p', 'empty-note', 'Здесь будут мешочки снежинок, ножницы и защитные бирки из-под снега.'));
+    const tagCount = s.bag.filter(t => t.kind === 'tag').length;
+    if (tagCount) items.append(node('p', '', '🏷 Бирки: ' + tagCount + '. Прикрепляются к письму в окне рецепта.'));
+    s.bag.filter(t => t.kind !== 'tag').forEach(t => {
+      const row = node('div', 'bag-row'); row.append(node('span', '', (t.kind === 'energy' ? '❄ ' : '✂ ') + t.name + (t.amount ? ' · ' + t.amount + ' ❄' : '')));
+      const b = button(t.kind === 'energy' ? 'Взять' : 'Разделить выбранную', () => execute(t.kind === 'energy' ? { type: 'energy', toolId: t.id } : { type: 'split', toolId: t.id, cell: selected }));
+      b.disabled = t.kind === 'energy' ? s.energy === E.MAX_ENERGY : selected === null || !E.isItem(s.board[selected]) || s.board[selected].level < 2;
+      row.append(b); items.append(row);
+    });
+    $('bag-items').replaceChildren(items);
+  }
+  function renderCatalog() {
+    const s = game.state, catalog = document.createDocumentFragment();
+    Object.values(E.SHIFTS[s.shift].generators).forEach(c => {
+      const section = node('details', 'catalog-workshop'); section.append(node('summary', '', E.CHAINS[c].generator + ' ' + E.CHAINS[c].name + ' · заказы до ур. ' + s.unlocked[c]));
+      const p = node('p', '', s.unlocked[c] >= 5 ? 'Выдача: 80% уровня 1, 20% уровня ' + (s.unlocked[c] - 3) + '.' : 'Выдача: уровень 1. С заказами уровня 5 появится улучшенная выдача.'); section.append(p);
+      E.CHAINS[c].names.forEach((name, i) => { const row = node('div', 'catalog-part'); row.append(partChip({ chain: c, level: i + 1 }), node('span', '', name)); section.append(row); });
+      section.append(node('h3', '', 'Подарки и рецепты'));
+      E.CHAINS[c].gifts.forEach((name, i) => { const row = node('div', 'catalog-gift'); row.append(node('b', '', 'Ур. ' + (i + 1) + ' · ' + name), node('p', '', E.RECIPES[i].map(l => ({ tech: 'Т', sew: 'Ш', art: 'Х' }[c]) + l).join(' + '))); section.append(row); });
+      catalog.append(section);
+    }); $('catalog').replaceChildren(catalog);
+  }
+  function showRecipe(id) { currentOrder = id; renderRecipe(); if (E.findOrder(game.state, id) && !$('recipe-dialog').open) $('recipe-dialog').showModal(); }
+  function renderRecipe() {
+    const s = game.state, L = E.findOrder(s, currentOrder);
+    if (!L) { if ($('recipe-dialog').open) $('recipe-dialog').close(); return; }
+    $('recipe-title').textContent = L.who + (L.retry ? ' · повторная посылка' : ' · подарок'); $('recipe-story').textContent = '«' + L.text + '»';
+    const items = document.createDocumentFragment();
+    L.want.forEach((g, i) => {
+      const box = node('section', 'gift-recipe'); box.append(node('h3', '', E.CHAINS[g.chain].icons[g.level - 1] + ' ' + E.giftName(g) + ' · ур. ' + g.level));
+      if (L.packed[i]) box.append(node('p', 'packed-label', '✓ Собран. Подарок ждёт на полке письма.'));
+      else {
+        const have = E.count(s), components = node('div', 'recipe-components');
+        E.recipe(g).forEach(p => { const ready = (have[E.key(p)] || 0) > 0; if (ready) have[E.key(p)]--; const row = node('div', 'recipe-component'); row.append(partChip(p, ready), node('span', '', E.label(p)), node('b', '', ready ? '✓' : '○')); components.append(row); });
+        box.append(components); const b = button('Собрать подарок', () => execute({ type: 'craft', orderId: L.id, giftIndex: i }), 'primary'); b.disabled = !E.canCraft(s, L.id, i); box.append(b);
+      }
+      items.append(box);
+    }); $('recipe-items').replaceChildren(items);
+    const protect = document.createDocumentFragment();
+    if (L.retry || L.protected) protect.append(node('p', 'packed-label', '🏷 ' + (L.retry ? 'Повторная доставка гарантирована.' : 'Защищено биркой: точно дойдёт целым.')));
+    else if (s.bag.some(t => t.kind === 'tag')) protect.append(button('Прикрепить найденную бирку', () => execute({ type: 'protect', orderId: L.id })));
+    $('recipe-protection').replaceChildren(protect); $('recipe-send').disabled = !E.canSend(s, L.id);
+  }
+  function showReply(id) {
+    const m = game.state.mail.find(m => m.id === id); if (!m || m.claimed || m.dueAt > Date.now()) return;
+    currentMail = id;
+    $('reply-title').textContent = m.outcome === 'success' ? 'Ответ от ' + m.order.who : 'Извещение о посылке · ' + m.order.who;
+    $('reply-text').textContent = m.outcome === 'success' ? '«Подарок приехал! Спасибо, Дедушка! Мы уже придумали, как будем с ним играть. А это я нарисовал вашу почту». ' + (m.attempt === 2 ? 'Повторная посылка дошла.' : '') : m.outcome === 'lost' ? 'Снеговик: «Посылка затерялась в дороге. Мне очень жаль. Давай соберём её ещё раз — повторную точно доставим». Сердечко придёт после повторной доставки.' : 'Снеговик: «Подарок повредился по дороге. За эту доставку нет сердечка. Надёжная упаковка поможет избежать такого в будущем». Письмо закроется, можно продолжать новые заказы.';
+    $('reply-drawing').hidden = m.outcome !== 'success'; $('reply-claim').textContent = m.outcome === 'success' ? 'Забрать спасибо · +1 ♡' : m.outcome === 'lost' ? 'Получить повторный заказ' : 'Прочитано · без сердечка';
+    if (!$('reply-dialog').open) $('reply-dialog').showModal();
+  }
+  function showAlbum() {
+    const s = game.state, body = document.createDocumentFragment();
+    body.append(node('h3', '', 'Находки и комната'), node('p', '', 'Частей найдено: ' + s.cleared.filter(c => E.cacheAt(c.shift, c.cell)?.required).length + '. Украшения: ' + (s.decor.map(d => d.name).join(', ') || 'пока нет') + '.'));
+    if (s.postcards.length) body.append(node('h3', '', 'Открытки из старой почты'));
+    s.postcards.forEach(c => { const row = node('article', 'album-entry'); row.append(node('b', '', c.name), node('p', '', c.text)); body.append(row); });
+    body.append(node('h3', '', 'Посылки и ответы'));
+    if (!s.mail.length) body.append(node('p', '', 'Первой посылке ещё предстоит отправиться в путь.'));
+    [...s.mail].reverse().forEach(m => {
+      const row = node('article', 'album-entry'); row.append(node('b', '', m.order.who + (m.attempt === 2 ? ' · повторная' : '')), node('p', '', m.order.want.map(E.giftName).join(' + ')));
+      if (m.claimed) row.append(node('p', '', m.outcome === 'success' ? '✓ Ответ получен · +1 ♡' : m.outcome === 'lost' ? 'Посылка потерялась · добавлен повторный заказ' : 'Повреждено · без сердечка'));
+      else if (m.dueAt <= Date.now()) row.append(button('Открыть ответ', () => showReply(m.id), 'primary'));
+      else row.append(node('p', '', 'Посылка в пути'));
+      body.append(row);
+    }); $('album-body').replaceChildren(body); if (!$('album-dialog').open) $('album-dialog').showModal();
+  }
+  function activate(i) {
+    clearPending(); const x = game.state.board[i];
+    if (x?.snow) { selected = null; snowSelection = i; render(); tip(E.accessible(game.state, i) ? 'Выбери расчистку ниже. Сердечки приходят с ответами детей.' : 'Сюда пока не добраться: открой соседнюю клетку со стороны стола.'); $('snow-panel').scrollIntoView({ block: 'nearest' }); return; }
+    snowSelection = null;
+    if (selected !== null && selected !== i) { execute({ type: 'drop', from: selected, to: i }); return; }
+    if (x?.gen) execute({ type: 'spawn', from: i });
+    else if (E.isItem(x)) { selected = selected === i ? null : i; render(); tip(selected === null ? intro() : E.label(x) + ' · ур. ' + x.level + '. Выбери другую клетку, ножницы или «Вернуть».'); }
+    else { selected = null; render(); tip(intro()); }
+  }
+  $('board').addEventListener('click', e => { if (Date.now() - lastPointerClick < 350) return; const cell = e.target.closest('[data-cell]'); if (cell) activate(Number(cell.dataset.cell)); });
+  $('board').addEventListener('pointerdown', e => {
+    if (e.button !== 0 || drag) return; const cell = e.target.closest('[data-cell]'); if (!cell || cell.disabled) return;
+    const i = Number(cell.dataset.cell); drag = { i, pointer: e.pointerId, x: e.clientX, y: e.clientY, moved: false, draggable: E.isItem(game.state.board[i]) };
+    cell.focus({ preventScroll: true }); e.preventDefault(); $('board').setPointerCapture(e.pointerId);
+  });
+  const under = e => document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-cell], #return');
+  function clearHover() { document.querySelectorAll('.over').forEach(x => x.classList.remove('over')); }
+  function finishDrag() {
+    const d = drag; drag = null; if (d && $('board').hasPointerCapture(d.pointer)) $('board').releasePointerCapture(d.pointer);
+    if (ghost) ghost.remove(); ghost = null; clearHover(); $('return').disabled = selected === null || !E.isItem(game.state.board[selected]);
+  }
+  window.addEventListener('pointermove', e => {
+    if (!drag || drag.pointer !== e.pointerId || !drag.draggable) return;
+    if (!drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 8) { drag.moved = true; clearPending(); const x = game.state.board[drag.i]; ghost = node('div', 'ghost', E.CHAINS[x.chain].icon + x.level); document.body.append(ghost); $('return').disabled = false; }
+    if (ghost) { ghost.style.left = e.clientX + 'px'; ghost.style.top = e.clientY + 'px'; clearHover(); under(e)?.classList.add('over'); }
+  });
+  window.addEventListener('pointerup', e => {
+    if (!drag || drag.pointer !== e.pointerId) return; const d = drag, target = under(e); finishDrag(); lastPointerClick = Date.now();
+    if (!d.moved) { if (target?.dataset.cell !== undefined && Number(target.dataset.cell) === d.i) activate(d.i); return; }
+    if (target?.id === 'return') execute({ type: 'return', from: d.i }); else if (target?.dataset.cell !== undefined) execute({ type: 'drop', from: d.i, to: Number(target.dataset.cell) });
+  });
+  window.addEventListener('pointercancel', finishDrag); window.addEventListener('blur', finishDrag);
+  $('board').addEventListener('lostpointercapture', () => { if (drag) finishDrag(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { selected = null; snowSelection = null; clearPending(); finishDrag(); render(); tip(intro()); } });
+  $('return').addEventListener('click', () => { if (selected !== null) execute({ type: 'return', from: selected }); });
+  $('undo').addEventListener('click', () => execute({ type: 'undo' }));
+  $('confirm-merge').addEventListener('click', () => { if (pending) execute({ ...pending, force: true }); });
+  $('melt').addEventListener('click', () => { if (snowSelection !== null) execute({ type: 'melt', cell: snowSelection }); });
+  $('build').addEventListener('click', () => execute({ type: 'build' }));
+  $('next').addEventListener('click', () => { if (execute({ type: 'next' })) { tip(intro()); $('shift-title').scrollIntoView({ block: 'start' }); } });
+  $('speed').addEventListener('click', () => execute({ type: 'speed' }));
+  $('recipe-send').addEventListener('click', () => { if (currentOrder !== null) execute({ type: 'send', orderId: currentOrder }); });
+  $('recipe-close').addEventListener('click', () => $('recipe-dialog').close());
+  $('album-open').addEventListener('click', showAlbum); $('album-close').addEventListener('click', () => $('album-dialog').close());
+  $('reply-close').addEventListener('click', () => $('reply-dialog').close());
+  $('reply-claim').addEventListener('click', () => { if (currentMail !== null && execute({ type: 'claim', mailId: currentMail })) { $('reply-dialog').close(); if ($('album-dialog').open) showAlbum(); } });
+  $('help').addEventListener('click', () => $('help-dialog').showModal()); $('help-close').addEventListener('click', () => $('help-dialog').close());
+  $('restart').addEventListener('click', () => $('restart-dialog').showModal()); $('restart-cancel').addEventListener('click', () => $('restart-dialog').close());
+  $('restart-confirm').addEventListener('click', () => { finishDrag(); game = new E.Game(); selected = null; snowSelection = null; currentOrder = null; currentMail = null; clearPending(); $('restart-dialog').close(); save(); render(); tip(intro()); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { finishDrag(); save(); } });
+  setInterval(() => { const energy = game.state.energy; game.regen(); if (energy !== game.state.energy) { save(); if (!drag && !document.querySelector('dialog[open]')) render(); } updateEnergy(); updateMailbox(); }, 1000);
+  save(); render(); tip(loadMessage || intro());
+})();
+
+</script>
+</body></html>

@@ -1,0 +1,283 @@
+(function () {
+  'use strict';
+  const E = window.PostGame, $ = id => document.getElementById(id), KEY = 'pochta-workshops-v9';
+  let saved, loadMessage = '', storageFailed = false;
+  try {
+    const raw = localStorage.getItem(KEY), old = raw ? null : localStorage.getItem('pochta-workshops-v8');
+    if (raw || old) {
+      const parsed = JSON.parse(raw || old); saved = E.migrate(parsed);
+      if (!saved) { saved = undefined; loadMessage = 'Сохранение не удалось прочитать. Начинаем заново.'; }
+      else if (old) loadMessage = 'Прогресс v8 перенесён. Теперь подарки можно собирать прямо на поле: перетаскивай разные детали по рецепту.';
+    }
+  }
+  catch (_) { loadMessage = 'Хранилище недоступно: прогресс может не сохраниться.'; }
+  let game = new E.Game(saved), selected = null, snowSelection = null, pending = null, currentOrder = null, currentMail = null;
+  let drag = null, ghost = null, lastPointerClick = 0, mailFingerprint = '';
+  const node = (tag, cls, text) => { const x = document.createElement(tag); if (cls) x.className = cls; if (text !== undefined) x.textContent = text; return x; };
+  function button(text, fn, cls = '') { const b = node('button', cls, text); b.addEventListener('click', fn); return b; }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(game.state)); storageFailed = false; } catch (_) { storageFailed = true; }
+    $('save-status').textContent = storageFailed ? 'Не удалось сохранить. Не закрывай страницу, если хочешь продолжить.' : 'Сохраняется в этом браузере · сохранение v8 сохранено отдельно';
+  }
+  function tip(text, warn = false) { $('tip').textContent = text; $('tip').parentElement.classList.toggle('warning', warn); }
+  function intro() {
+    return game.state.mail.length ? 'Собирай подарки, жди ответов и расчищай путь за сердечки. Последняя часть мастерской — под дальним льдом.' : 'Открой рецепт письма. Одинаковые детали сливаются в старшую; разные детали по рецепту превращаются в подарок прямо на поле. Сборка в окне рецепта тоже работает.';
+  }
+  function clearPending() { pending = null; $('confirm-merge').hidden = true; }
+  function execute(a) {
+    clearPending(); const r = a.type === 'undo' ? game.undo() : game.act(a);
+    if (r.warning) { pending = a; $('confirm-merge').hidden = false; tip(r.text, true); return false; }
+    if (!r.ok) { tip(r.text, true); return false; }
+    selected = null; snowSelection = null; save(); render(r.pop); tip(r.text);
+    return true;
+  }
+  function partChip(p, available = false) {
+    const x = node('span', 'part-chip' + (available ? ' available' : ''), E.CHAINS[p.chain].icon + ' ' + p.level);
+    x.style.setProperty('--part-color', E.CHAINS[p.chain].color); x.title = E.label(p); x.setAttribute('aria-label', E.label(p) + ', уровень ' + p.level + (available ? ': готово' : '')); return x;
+  }
+  function renderLetter(L) {
+    const card = node('article', 'letter' + (L.retry ? ' retry' : ''));
+    card.append(node('h3', '', L.who), node('small', 'letter-kind', L.retry ? 'Повторная · точно дойдёт' : L.side ? 'Письмо из сугроба' : 'Детское письмо'));
+    const wants = node('div', 'gift-list');
+    const availableGifts = E.countGifts(game.state);
+    L.want.forEach((g, n) => {
+      const onTable = !L.packed[n] && (availableGifts[E.key(g)] || 0) > 0;
+      if (onTable) availableGifts[E.key(g)]--;
+      const text = node('p', L.packed[n] || onTable ? 'packed-label' : '', (L.packed[n] || onTable ? '✓ ' : '') + E.CHAINS[g.chain].icons[g.level - 1] + ' ' + E.giftName(g)); wants.append(text);
+    });
+    card.append(wants);
+    const ready = E.canSend(game.state, L.id), craftable = L.want.some((_, n) => E.canCraft(game.state, L.id, n));
+    const b = button(ready ? 'Отправить' : craftable ? 'Собрать подарок' : 'Рецепт', () => ready ? execute({ type: 'send', orderId: L.id }) : showRecipe(L.id), ready || craftable ? 'ready' : '');
+    b.dataset.order = L.id; card.append(b);
+    if (ready) card.append(button('Рецепт и упаковка', () => showRecipe(L.id), 'packing-link'));
+    return card;
+  }
+  function updateEnergy() {
+    const s = game.state;
+    $('energy').textContent = s.energy + ' / ' + E.MAX_ENERGY;
+    $('energy-timer').textContent = s.energy < E.MAX_ENERGY ? '+1 через ' + game.energySeconds() + ' с' : 'полный запас';
+    $('thanks').textContent = s.thanks;
+    $('speed').textContent = 'Быстрый тест ×10: ' + (s.speed === 10 ? 'включён · ожидание ускорено' : 'выключен');
+  }
+  function updateMailbox(force = false) {
+    const s = game.state, now = Date.now(), unclaimed = s.mail.filter(m => !m.claimed);
+    const ready = unclaimed.filter(m => m.dueAt <= now), pendingMail = unclaimed.filter(m => m.dueAt > now);
+    $('mail-summary').textContent = !s.mail.length ? 'Отправь первую посылку. Ответ придёт через ' + (E.MAIL_MS / s.speed / 1000) + ' с.' : 'В пути: ' + pendingMail.length + ' · ответов ждут открытия: ' + ready.length;
+    const chance = E.rates(s);
+    $('delivery-rates').textContent = 'Потеря ' + Math.round(chance.lost * 100) + '% · повреждение ' + Math.round(chance.damaged * 100) + '%';
+    const fingerprint = JSON.stringify(unclaimed.map(m => [m.id, m.dueAt <= now ? 'ready' : Math.ceil((m.dueAt - now) / 1000)]));
+    if (!force && fingerprint === mailFingerprint) return;
+    mailFingerprint = fingerprint;
+    const focusMail = document.activeElement?.dataset?.mail, list = document.createDocumentFragment();
+    for (const m of [...ready.slice(0, 4), ...pendingMail.slice(0, 2)]) {
+      const row = node('div', 'mail-row');
+      row.append(node('span', '', '✉ ' + m.order.who + (m.attempt === 2 ? ' · повторная' : '')));
+      if (m.dueAt <= now) { const b = button('Открыть ответ', () => showReply(m.id), 'primary'); b.dataset.mail = m.id; row.append(b); }
+      else row.append(node('small', '', 'Ответ через ' + Math.max(1, Math.ceil((m.dueAt - now) / 1000)) + ' с'));
+      list.append(row);
+    }
+    if (ready.length > 4 || pendingMail.length > 2) list.append(button('Все посылки и ответы →', showAlbum));
+    $('mail-list').replaceChildren(list);
+    if (focusMail) $('mail-list').querySelector('[data-mail="' + focusMail + '"]')?.focus({ preventScroll: true });
+  }
+  function render(popAt) {
+    const s = game.state, def = E.SHIFTS[s.shift], oldFocus = document.activeElement;
+    const focusCell = oldFocus?.dataset?.cell, focusOrder = oldFocus?.dataset?.order;
+    $('shift-number').textContent = 'МАСТЕРСКАЯ ' + (s.shift + 1) + ' ИЗ 3'; $('shift-title').textContent = def.title;
+    $('progress').textContent = 'Отправлено: ' + s.mail.filter(m => m.shift === s.shift).length;
+    $('album-count').textContent = s.mail.filter(m => m.claimed).length;
+    updateEnergy(); updateMailbox(true);
+    const parts = E.parts(s), project = document.createDocumentFragment();
+    $('goal-title').textContent = def.goal;
+    parts.forEach(p => { const chip = node('span', 'project-part' + (p.found ? ' found' : ''), (p.found ? '✓ ' : '○ ') + p.name); chip.title = p.found ? 'Найдено' : 'Под снегом ' + E.coord(p.cell) + ' · ' + E.SNOW[p.snow].cost + ' ♡'; project.append(chip); });
+    $('goal-parts').replaceChildren(project); $('goal-progress').textContent = parts.filter(p => p.found).length + ' / 4';
+    const letters = document.createDocumentFragment(); s.letters.forEach(L => letters.append(renderLetter(L))); $('letters').replaceChildren(letters);
+    $('extra-panel').hidden = !s.extra.length; $('extra-summary').textContent = 'Дополнительные и повторные письма · ' + s.extra.length;
+    const extra = document.createDocumentFragment(); s.extra.forEach(L => extra.append(renderLetter(L))); $('extra-letters').replaceChildren(extra);
+    $('room-state').textContent = s.built.length ? ['Швейная машинка готова', 'Студия творчества открыта', 'Упаковочная станция работает'][s.built.length - 1] : 'Зажгли лампу, расчищаем старую мастерскую.';
+    const decor = document.createDocumentFragment();
+    s.decor.forEach(d => { const x = node('span', '', d.icon); x.title = d.name; x.setAttribute('aria-label', d.name); decor.append(x); });
+    $('room-decor').replaceChildren(decor); $('room-decor').hidden = !s.decor.length;
+    const wanted = {};
+    E.orderList(s).forEach(L => L.want.forEach((g, n) => { if (!L.packed[n]) E.recipe(g).forEach(p => { wanted[E.key(p)] = true; }); }));
+    const cells = document.createDocumentFragment();
+    s.board.forEach((x, i) => {
+      const el = node('button', 'cell'); el.dataset.cell = i;
+      let title = E.coord(i) + ': пустая клетка', icon = '';
+      if (x?.blocked) { el.classList.add('blocked'); el.disabled = true; title = E.coord(i) + ': недоступно'; }
+      else if (x?.gen) {
+        el.classList.add('gen'); icon = E.CHAINS[x.gen].generator;
+        const bonus = s.unlocked[x.gen] >= 5 ? s.unlocked[x.gen] - 3 : 1;
+        title = E.coord(i) + ': ' + E.CHAINS[x.gen].name + '. −1 снежинка. ' + (bonus > 1 ? '80% уровня 1, 20% уровня ' + bonus : 'Запчасть уровня 1');
+        el.append(node('small', 'level', bonus > 1 ? '1 / ' + bonus : '−1❄'));
+      } else if (x?.snow) {
+        const loot = E.cacheAt(s.shift, i), reachable = E.accessible(s, i);
+        el.classList.add('snow'); if (x.snow === 2) el.classList.add('double'); if (x.snow === 3) el.classList.add('ice'); if (!reachable) el.classList.add('distant');
+        if (loot?.required) el.classList.add('part-cache');
+        icon = loot?.required ? '⚙' : loot ? '🎁' : x.snow === 3 ? '🧊' : '☁';
+        title = E.coord(i) + ': ' + E.SNOW[x.snow].name + ', ' + E.SNOW[x.snow].cost + ' ♡.' + (reachable ? ' Можно расчистить.' : ' Сначала доберись по соседним клеткам.') + (loot?.required ? ' Часть мастерской.' : '');
+        el.append(node('small', 'level', E.SNOW[x.snow].cost + '♡'));
+      } else if (E.isGift(x)) {
+        el.classList.add('finished-gift'); icon = E.CHAINS[x.gift.chain].icons[x.gift.level - 1];
+        title = E.coord(i) + ': готовый подарок — ' + E.giftName(x.gift) + '. Можно отправить по письму.';
+        el.append(node('small', 'level', '🎁 ' + x.gift.level));
+      } else if (E.isAssembly(x)) {
+        el.classList.add('assembly-cell'); icon = '🛠';
+        title = E.coord(i) + ': ' + E.cellName(x) + ', детали: ' + x.assembly.parts.join(', ') + '. Добавь оставшиеся детали.';
+        el.append(node('small', 'assembly-count', x.assembly.parts.length + '/' + E.RECIPES[x.assembly.level - 1].length));
+      } else if (E.isItem(x)) {
+        el.classList.add('component'); el.style.setProperty('--part-color', E.CHAINS[x.chain].color);
+        icon = E.CHAINS[x.chain].icon; title = E.coord(i) + ': ' + E.label(x) + ', уровень ' + x.level;
+        el.append(node('small', 'rank', x.level), node('small', 'part-letter', { tech: 'Т', sew: 'Ш', art: 'Х' }[x.chain]));
+        if (wanted[E.key(x)]) el.classList.add('needed');
+      }
+      el.prepend(node('span', 'icon', icon)); el.title = title; el.setAttribute('aria-label', title); el.setAttribute('aria-pressed', String(selected === i || snowSelection === i));
+      if (selected === i || snowSelection === i) el.classList.add('selected'); if (i === popAt) el.classList.add('pop'); cells.append(el);
+    });
+    $('board').replaceChildren(cells);
+    $('selection').textContent = selected !== null && E.isMovable(s.board[selected]) ? E.cellName(s.board[selected]) : 'Одинаковые детали → старшая · разные по рецепту → подарок';
+    $('return').disabled = selected === null || (!E.isItem(s.board[selected]) && !E.isAssembly(s.board[selected]));
+    $('return').textContent = selected !== null && E.isAssembly(s.board[selected]) ? '↩ Разобрать' : '↩ Вернуть'; $('undo').disabled = !game.history.length;
+    const snow = snowSelection === null ? null : s.board[snowSelection]; $('snow-panel').hidden = !snow?.snow;
+    if (snow?.snow) {
+      const loot = E.cacheAt(s.shift, snowSelection), type = E.SNOW[snow.snow], access = E.accessible(s, snowSelection);
+      $('snow-title').textContent = E.coord(snowSelection) + ' · ' + type.name;
+      $('snow-description').textContent = loot?.required ? 'Под снегом ' + loot.name + '. Эта часть нужна для цели.' : loot ? 'Здесь спрятана полезная находка. Узнаем, что это, когда расчистим снег.' : 'Освободим клетку для запчастей.';
+      $('melt').textContent = 'Расчистить · ' + type.cost + ' ♡'; $('melt').disabled = !access || s.thanks < type.cost;
+      $('snow-balance').textContent = !access ? 'Сначала расчисти соседнюю клетку с открытой стороны.' : s.thanks < type.cost ? 'Не хватает ' + (type.cost - s.thanks) + ' ♡. Они приходят с успешными ответами.' : 'Останется ' + (s.thanks - type.cost) + ' ♡.';
+    }
+    renderBag(); renderCatalog();
+    $('completion').hidden = !E.complete(s);
+    const built = s.built.includes(s.shift);
+    $('completion-title').textContent = built ? 'Мастерская работает!' : 'Можно собирать!';
+    $('completion-text').textContent = !built ? 'Четыре части на месте. Соберём их — и откроем новое производство.' : s.shift < 2 ? 'Запчасти и незаконченные сборки уберём со стола. Готовые подарки с поля перенесём в запас; письма, посылки и ресурсы останутся.' : 'Упаковка надёжнее: повреждения 5%, потери 20%. Можно продолжить письма и исследовать оставшийся снег.';
+    $('build').hidden = built; $('next').hidden = !built || s.shift === 2; $('next').textContent = 'Убрать стол · открыть ' + (s.shift === 0 ? 'швейную' : 'студию творчества');
+    if ($('recipe-dialog').open) renderRecipe();
+    if (focusCell !== undefined) $('board').querySelector('[data-cell="' + focusCell + '"]')?.focus({ preventScroll: true });
+    if (focusOrder !== undefined) document.querySelector('[data-order="' + focusOrder + '"]')?.focus({ preventScroll: true });
+  }
+  function renderBag() {
+    const s = game.state, items = document.createDocumentFragment(); $('bag-count').textContent = s.bag.length + s.giftStore.length;
+    if (!s.bag.length && !s.giftStore.length) items.append(node('p', 'empty-note', 'Здесь будут мешочки снежинок, ножницы и защитные бирки из-под снега.'));
+    if (s.giftStore.length) items.append(node('p', 'packed-label', '🎁 Подарки с прошлого стола: ' + s.giftStore.map(E.giftName).join(', ') + '. Подходящее письмо можно отправить сразу.'));
+    const tagCount = s.bag.filter(t => t.kind === 'tag').length;
+    if (tagCount) items.append(node('p', '', '🏷 Бирки: ' + tagCount + '. Прикрепляются к письму в окне рецепта.'));
+    s.bag.filter(t => t.kind !== 'tag').forEach(t => {
+      const row = node('div', 'bag-row'); row.append(node('span', '', (t.kind === 'energy' ? '❄ ' : '✂ ') + t.name + (t.amount ? ' · ' + t.amount + ' ❄' : '')));
+      const b = button(t.kind === 'energy' ? 'Взять' : 'Разделить выбранную', () => execute(t.kind === 'energy' ? { type: 'energy', toolId: t.id } : { type: 'split', toolId: t.id, cell: selected }));
+      b.disabled = t.kind === 'energy' ? s.energy === E.MAX_ENERGY : selected === null || !E.isItem(s.board[selected]) || s.board[selected].level < 2;
+      row.append(b); items.append(row);
+    });
+    $('bag-items').replaceChildren(items);
+  }
+  function renderCatalog() {
+    const s = game.state, catalog = document.createDocumentFragment();
+    Object.values(E.SHIFTS[s.shift].generators).forEach(c => {
+      const section = node('details', 'catalog-workshop'); section.append(node('summary', '', E.CHAINS[c].generator + ' ' + E.CHAINS[c].name + ' · заказы до ур. ' + s.unlocked[c]));
+      const p = node('p', '', s.unlocked[c] >= 5 ? 'Выдача: 80% уровня 1, 20% уровня ' + (s.unlocked[c] - 3) + '.' : 'Выдача: уровень 1. С заказами уровня 5 появится улучшенная выдача.'); section.append(p);
+      E.CHAINS[c].names.forEach((name, i) => { const row = node('div', 'catalog-part'); row.append(partChip({ chain: c, level: i + 1 }), node('span', '', name)); section.append(row); });
+      section.append(node('h3', '', 'Подарки и рецепты'));
+      E.CHAINS[c].gifts.forEach((name, i) => { const row = node('div', 'catalog-gift'); row.append(node('b', '', 'Ур. ' + (i + 1) + ' · ' + name), node('p', '', E.RECIPES[i].map(l => ({ tech: 'Т', sew: 'Ш', art: 'Х' }[c]) + l).join(' + '))); section.append(row); });
+      catalog.append(section);
+    }); $('catalog').replaceChildren(catalog);
+  }
+  function showRecipe(id) { currentOrder = id; renderRecipe(); if (E.findOrder(game.state, id) && !$('recipe-dialog').open) $('recipe-dialog').showModal(); }
+  function renderRecipe() {
+    const s = game.state, L = E.findOrder(s, currentOrder);
+    if (!L) { if ($('recipe-dialog').open) $('recipe-dialog').close(); return; }
+    $('recipe-title').textContent = L.who + (L.retry ? ' · повторная посылка' : ' · подарок'); $('recipe-story').textContent = '«' + L.text + '»';
+    const items = document.createDocumentFragment();
+    const availableGifts = E.countGifts(s);
+    L.want.forEach((g, i) => {
+      const box = node('section', 'gift-recipe'); box.append(node('h3', '', E.CHAINS[g.chain].icons[g.level - 1] + ' ' + E.giftName(g) + ' · ур. ' + g.level));
+      const readyGift = !L.packed[i] && (availableGifts[E.key(g)] || 0) > 0;
+      if (readyGift) availableGifts[E.key(g)]--;
+      if (L.packed[i] || readyGift) box.append(node('p', 'packed-label', L.packed[i] ? '✓ Собран на полке письма. Можно отправлять.' : '✓ Готов на поле или в запасе. Можно отправлять.'));
+      else {
+        const have = E.count(s), components = node('div', 'recipe-components');
+        E.recipe(g).forEach(p => { const ready = (have[E.key(p)] || 0) > 0; if (ready) have[E.key(p)]--; const row = node('div', 'recipe-component'); row.append(partChip(p, ready), node('span', '', E.label(p)), node('b', '', ready ? '✓' : '○')); components.append(row); });
+        box.append(components); box.append(node('p', 'field-craft-hint', g.level >= 7 ? 'На поле: начни со старшей детали, добавь остальные уровни в сборку. Можно также собрать кнопкой ниже.' : 'На поле: перетащи одну нужную деталь на другую — получится подарок. Можно также собрать кнопкой ниже.')); const b = button('Собрать подарок', () => execute({ type: 'craft', orderId: L.id, giftIndex: i }), 'primary'); b.disabled = !E.canCraft(s, L.id, i); box.append(b);
+      }
+      items.append(box);
+    }); $('recipe-items').replaceChildren(items);
+    const protect = document.createDocumentFragment();
+    if (L.retry || L.protected) protect.append(node('p', 'packed-label', '🏷 ' + (L.retry ? 'Повторная доставка гарантирована.' : 'Защищено биркой: точно дойдёт целым.')));
+    else if (s.bag.some(t => t.kind === 'tag')) protect.append(button('Прикрепить найденную бирку', () => execute({ type: 'protect', orderId: L.id })));
+    $('recipe-protection').replaceChildren(protect); $('recipe-send').disabled = !E.canSend(s, L.id);
+  }
+  function showReply(id) {
+    const m = game.state.mail.find(m => m.id === id); if (!m || m.claimed || m.dueAt > Date.now()) return;
+    currentMail = id;
+    $('reply-title').textContent = m.outcome === 'success' ? 'Ответ от ' + m.order.who : 'Извещение о посылке · ' + m.order.who;
+    $('reply-text').textContent = m.outcome === 'success' ? '«Подарок приехал! Спасибо, Дедушка! Мы уже придумали, как будем с ним играть. А это я нарисовал вашу почту». ' + (m.attempt === 2 ? 'Повторная посылка дошла.' : '') : m.outcome === 'lost' ? 'Снеговик: «Посылка затерялась в дороге. Мне очень жаль. Давай соберём её ещё раз — повторную точно доставим». Сердечко придёт после повторной доставки.' : 'Снеговик: «Подарок повредился по дороге. За эту доставку нет сердечка. Надёжная упаковка поможет избежать такого в будущем». Письмо закроется, можно продолжать новые заказы.';
+    $('reply-drawing').hidden = m.outcome !== 'success'; $('reply-claim').textContent = m.outcome === 'success' ? 'Забрать спасибо · +1 ♡' : m.outcome === 'lost' ? 'Получить повторный заказ' : 'Прочитано · без сердечка';
+    if (!$('reply-dialog').open) $('reply-dialog').showModal();
+  }
+  function showAlbum() {
+    const s = game.state, body = document.createDocumentFragment();
+    body.append(node('h3', '', 'Находки и комната'), node('p', '', 'Частей найдено: ' + s.cleared.filter(c => E.cacheAt(c.shift, c.cell)?.required).length + '. Украшения: ' + (s.decor.map(d => d.name).join(', ') || 'пока нет') + '.'));
+    if (s.postcards.length) body.append(node('h3', '', 'Открытки из старой почты'));
+    s.postcards.forEach(c => { const row = node('article', 'album-entry'); row.append(node('b', '', c.name), node('p', '', c.text)); body.append(row); });
+    body.append(node('h3', '', 'Посылки и ответы'));
+    if (!s.mail.length) body.append(node('p', '', 'Первой посылке ещё предстоит отправиться в путь.'));
+    [...s.mail].reverse().forEach(m => {
+      const row = node('article', 'album-entry'); row.append(node('b', '', m.order.who + (m.attempt === 2 ? ' · повторная' : '')), node('p', '', m.order.want.map(E.giftName).join(' + ')));
+      if (m.claimed) row.append(node('p', '', m.outcome === 'success' ? '✓ Ответ получен · +1 ♡' : m.outcome === 'lost' ? 'Посылка потерялась · добавлен повторный заказ' : 'Повреждено · без сердечка'));
+      else if (m.dueAt <= Date.now()) row.append(button('Открыть ответ', () => showReply(m.id), 'primary'));
+      else row.append(node('p', '', 'Посылка в пути'));
+      body.append(row);
+    }); $('album-body').replaceChildren(body); if (!$('album-dialog').open) $('album-dialog').showModal();
+  }
+  function activate(i) {
+    clearPending(); const x = game.state.board[i];
+    if (x?.snow) { selected = null; snowSelection = i; render(); tip(E.accessible(game.state, i) ? 'Выбери расчистку ниже. Сердечки приходят с ответами детей.' : 'Сюда пока не добраться: открой соседнюю клетку со стороны стола.'); $('snow-panel').scrollIntoView({ block: 'nearest' }); return; }
+    snowSelection = null;
+    if (selected !== null && selected !== i) { execute({ type: 'drop', from: selected, to: i }); return; }
+    if (x?.gen) execute({ type: 'spawn', from: i });
+    else if (E.isMovable(x)) { selected = selected === i ? null : i; render(); tip(selected === null ? intro() : E.isGift(x) ? E.giftName(x.gift) + ' готов. В подходящем письме можно нажать «Отправить».' : E.isAssembly(x) ? E.cellName(x) + '. Уже добавлены уровни ' + x.assembly.parts.join(', ') + '. Добавь недостающие или нажми «Разобрать».' : E.label(x) + ' · ур. ' + x.level + '. Другая такая же → старшая; разные по рецепту → подарок.'); }
+    else { selected = null; render(); tip(intro()); }
+  }
+  $('board').addEventListener('click', e => { if (Date.now() - lastPointerClick < 350) return; const cell = e.target.closest('[data-cell]'); if (cell) activate(Number(cell.dataset.cell)); });
+  $('board').addEventListener('pointerdown', e => {
+    if (e.button !== 0 || drag) return; const cell = e.target.closest('[data-cell]'); if (!cell || cell.disabled) return;
+    const i = Number(cell.dataset.cell); drag = { i, pointer: e.pointerId, x: e.clientX, y: e.clientY, moved: false, draggable: E.isMovable(game.state.board[i]) };
+    cell.focus({ preventScroll: true }); e.preventDefault(); $('board').setPointerCapture(e.pointerId);
+  });
+  const under = e => document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-cell], #return');
+  function clearHover() { document.querySelectorAll('.over').forEach(x => x.classList.remove('over')); }
+  function finishDrag() {
+    const d = drag; drag = null; if (d && $('board').hasPointerCapture(d.pointer)) $('board').releasePointerCapture(d.pointer);
+    if (ghost) ghost.remove(); ghost = null; clearHover(); $('return').disabled = selected === null || (!E.isItem(game.state.board[selected]) && !E.isAssembly(game.state.board[selected]));
+  }
+  window.addEventListener('pointermove', e => {
+    if (!drag || drag.pointer !== e.pointerId || !drag.draggable) return;
+    if (!drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 8) { drag.moved = true; clearPending(); const x = game.state.board[drag.i]; ghost = node('div', 'ghost', E.isGift(x) ? E.CHAINS[x.gift.chain].icons[x.gift.level - 1] : E.isAssembly(x) ? '🛠' : E.CHAINS[x.chain].icon + x.level); document.body.append(ghost); $('return').disabled = false; }
+    if (ghost) { ghost.style.left = e.clientX + 'px'; ghost.style.top = e.clientY + 'px'; clearHover(); under(e)?.classList.add('over'); }
+  });
+  window.addEventListener('pointerup', e => {
+    if (!drag || drag.pointer !== e.pointerId) return; const d = drag, target = under(e); finishDrag(); lastPointerClick = Date.now();
+    if (!d.moved) { if (target?.dataset.cell !== undefined && Number(target.dataset.cell) === d.i) activate(d.i); return; }
+    if (target?.id === 'return') execute({ type: 'return', from: d.i }); else if (target?.dataset.cell !== undefined) execute({ type: 'drop', from: d.i, to: Number(target.dataset.cell) });
+  });
+  window.addEventListener('pointercancel', finishDrag); window.addEventListener('blur', finishDrag);
+  $('board').addEventListener('lostpointercapture', () => { if (drag) finishDrag(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { selected = null; snowSelection = null; clearPending(); finishDrag(); render(); tip(intro()); } });
+  $('return').addEventListener('click', () => { if (selected !== null) execute({ type: 'return', from: selected }); });
+  $('undo').addEventListener('click', () => execute({ type: 'undo' }));
+  $('confirm-merge').addEventListener('click', () => { if (pending) execute({ ...pending, force: true }); });
+  $('melt').addEventListener('click', () => { if (snowSelection !== null) execute({ type: 'melt', cell: snowSelection }); });
+  $('build').addEventListener('click', () => execute({ type: 'build' }));
+  $('next').addEventListener('click', () => { if (execute({ type: 'next' })) { tip(intro()); $('shift-title').scrollIntoView({ block: 'start' }); } });
+  $('speed').addEventListener('click', () => execute({ type: 'speed' }));
+  $('recipe-send').addEventListener('click', () => { if (currentOrder !== null) execute({ type: 'send', orderId: currentOrder }); });
+  $('recipe-close').addEventListener('click', () => $('recipe-dialog').close());
+  $('album-open').addEventListener('click', showAlbum); $('album-close').addEventListener('click', () => $('album-dialog').close());
+  $('reply-close').addEventListener('click', () => $('reply-dialog').close());
+  $('reply-claim').addEventListener('click', () => { if (currentMail !== null && execute({ type: 'claim', mailId: currentMail })) { $('reply-dialog').close(); if ($('album-dialog').open) showAlbum(); } });
+  $('help').addEventListener('click', () => $('help-dialog').showModal()); $('help-close').addEventListener('click', () => $('help-dialog').close());
+  $('restart').addEventListener('click', () => $('restart-dialog').showModal()); $('restart-cancel').addEventListener('click', () => $('restart-dialog').close());
+  $('restart-confirm').addEventListener('click', () => { finishDrag(); game = new E.Game(); selected = null; snowSelection = null; currentOrder = null; currentMail = null; clearPending(); $('restart-dialog').close(); save(); render(); tip(intro()); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { finishDrag(); save(); } });
+  setInterval(() => { const energy = game.state.energy; game.regen(); if (energy !== game.state.energy) { save(); if (!drag && !document.querySelector('dialog[open]')) render(); } updateEnergy(); updateMailbox(); }, 1000);
+  save(); render(); tip(loadMessage || intro());
+})();

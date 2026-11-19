@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#253f40"><title>Почта Деда Мороза — первые смены</title><style>:root{color-scheme:light;--ink:#41352e;--teal:#356b68;--cream:#fff6e5;--red:#b94d43;--gold:#ebc573;font-family:"Segoe UI",Arial,sans-serif;color:var(--ink);background:#253f40}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#496764,#253f40 75%);min-height:100vh;padding:18px max(10px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))}button,summary{font:inherit;cursor:pointer}button{border:0;border-radius:10px;background:#e8e5d7;color:var(--ink);padding:10px 12px;min-height:42px;font-weight:650;touch-action:manipulation}button:disabled{cursor:default;opacity:.55}button:focus-visible,summary:focus-visible{outline:3px solid #e7ae43;outline-offset:3px}[hidden]{display:none!important}.app{max-width:540px;margin:auto;display:flex;flex-direction:column;gap:12px}.heading{display:flex;justify-content:space-between;align-items:center;gap:8px;color:#fff2d6}h1{font-family:Georgia,serif;font-size:27px;line-height:1.2;margin:4px 0}h2{font-size:20px;margin:3px 0}h3{margin:8px 0}.eyebrow{font-size:10px;letter-spacing:1.5px;font-weight:700;margin:0}.album-button{background:#fff0cd;color:#65503d;white-space:nowrap;font-size:20px}.shift-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#f7edda}.shift-heading .eyebrow{color:#bed4cd}.progress{font-size:12px;background:#ffffff12;border:1px solid #ffffff25;padding:7px 10px;border-radius:20px;white-space:nowrap}
+.letters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding-top:6px;border-top:2px solid #bfa17b}.letter{background:var(--cream);border-radius:5px 5px 12px 12px;padding:12px 9px 8px;position:relative;display:flex;flex-direction:column;gap:7px;box-shadow:0 3px 0 #172e2d35;min-width:0}.letter:before{content:"";position:absolute;top:-7px;left:calc(50% - 4px);height:14px;width:8px;border-radius:2px;background:#be8c56;box-shadow:inset -2px 0 #0002}.letter h3{font-family:Georgia,serif;font-size:16px;margin:0}.letter p{font-size:12px;line-height:1.4;margin:0}.letter .want{display:flex;gap:4px;flex-wrap:wrap;margin-top:auto}.want span{font-size:23px;background:#f1e2c8;border:2px solid transparent;border-radius:8px;padding:2px 4px;position:relative}.want .have{border-color:#588d77;background:#e4ecda}.want small{font-size:9px;position:absolute;right:1px;bottom:0;color:#574232}.letter button{padding:7px 3px;font-size:12px;min-height:36px;background:#e5d7c0}.letter button.ready{background:var(--red);color:white}.letter.done{background:#e0e8d6}.letter.done:after{content:"✓";position:absolute;right:8px;top:7px;color:#588269;font-size:20px}
+.workshop{background:#b98555;border:5px solid #9c6a42;border-radius:15px;box-shadow:0 8px 0 #172d2a66;overflow:hidden}.room{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:51px;padding:0 9px;background:linear-gradient(#6a4934,#805738);color:#ffebcd;font-size:12px;line-height:1.35}.room img{object-fit:contain;flex:none;align-self:end}.board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:7px;touch-action:none;user-select:none;-webkit-user-select:none}.cell{aspect-ratio:1;min-height:0;min-width:0;padding:0;position:relative;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#ebcda1;box-shadow:inset 0 1px 1px #fff5;font-size:clamp(22px,6vw,34px);line-height:1;touch-action:none}.cell.blocked{background:#805636;opacity:.45;box-shadow:none}.cell.gen{background:#8ab4a3;border:2px solid #e9d29d;cursor:pointer}.cell.gen:after{content:"+";position:absolute;right:3px;top:2px;font:700 12px Arial;color:#214b44}.cell.snow{background:#e5f0f3;color:#8caab6}.cell.snow.double{background:#c3dce5}.cell.frozen .icon{opacity:.65;filter:saturate(.6)}.cell.frozen:after{content:"❄";position:absolute;top:2px;left:2px;font-size:17px;color:#4382a5}.cell .level{position:absolute;right:3px;bottom:3px;font-size:10px;line-height:1;color:#694b32}.cell.snow .level{color:#4f788b}.cell.needed{box-shadow:inset 0 0 0 2px #bd893b}.cell.selected{outline:3px solid #fff6ce;outline-offset:-3px;background:#f5dda8}.cell.over{outline:3px solid #3d7e78;outline-offset:-3px}.cell.hint{animation:breathe 1.8s ease-in-out infinite}.cell.pop .icon{animation:pop .2s ease-out}.ghost{position:fixed;pointer-events:none;z-index:20;font-size:40px;transform:translate(-50%,-60%);filter:drop-shadow(0 3px 2px #0004)}.table-footer{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 8px 8px;font-size:12px}.table-footer button{font-size:12px;background:#f5dfb8;min-height:36px;flex:none}.table-footer button.over{background:#80b6a2;outline:2px solid #fff4c8}
+.guide{background:#f0eddf;color:#475b51;padding:11px 13px;border-radius:12px;border-left:4px solid #9ab7a4;line-height:1.4;font-size:13px}.guide p{margin:0;min-height:36px}.guide.warning{border-color:#e4ae53}.guide button{margin-top:8px;background:#e8c989}.completion{padding:18px;background:#fff1cc;border:2px solid #e9c473;border-radius:14px;line-height:1.5}.completion h2{font-family:Georgia,serif;font-size:25px;margin-top:7px}.completion p{font-size:14px}.primary{background:var(--teal);color:white}.tools{display:flex;gap:6px;flex-wrap:wrap}.tools button{flex:1;font-size:12px;padding:10px 8px}.chains{color:#ecdfc7;font-size:12px;background:#ffffff09;padding:11px 13px;border-radius:10px}.chains summary{font-size:13px}.chain-row{line-height:1.6;padding-top:10px}.chain-row .steps{display:flex;align-items:center;gap:4px;margin-top:4px;flex-wrap:wrap}.chain-row .step{background:#ffffff0e;border-radius:6px;padding:3px 5px}.save-status,footer{font-size:11px;color:#b7ccc3;text-align:center;margin:0}footer{padding-bottom:8px}dialog{width:min(94vw,500px);max-height:85dvh;border:0;border-radius:17px;background:#fff6e5;color:var(--ink);padding:22px;line-height:1.5}dialog::backdrop{background:#122e2be0}.dialog-heading{display:flex;justify-content:space-between;align-items:center;gap:8px}.dialog-heading button{flex:none;background:#e7ddc7}.album-entry{border-top:1px solid #ddceb4;padding:12px 0;font-size:13px}.album-entry p{margin:4px 0}.improvements{font-size:12px;color:#476556;margin:12px 0}.drawing{width:100%;max-height:220px}#reply{border:2px dashed #d7bb80;border-radius:12px;padding:12px;margin:14px 0}#reply p{font-size:14px}
+@keyframes pop{from{transform:scale(1.3)}to{transform:scale(1)}}@keyframes breathe{50%{box-shadow:inset 0 0 0 3px #fff6ca}}@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important}}@media(max-width:380px){body{padding-top:10px}.app{gap:9px}h1{font-size:23px}.heading .eyebrow{font-size:8px;letter-spacing:1px}.letter{padding:11px 7px 7px}.letter p{font-size:11px}.letter h3{font-size:14px}.board{gap:3px;padding:5px}.cell{border-radius:6px}.want span{font-size:21px}.table-footer{font-size:11px}.tools button{font-size:11px}}@media(min-width:800px){body{padding-top:24px}.app{max-width:500px}}
+</style></head>
+<body><main class="app">
+<header class="heading"><div><p class="eyebrow">МАЛЕНЬКАЯ ПОЧТА · БОЛЬШИЕ ЖЕЛАНИЯ</p><h1>Почта Деда Мороза</h1></div><button id="album-open" class="album-button" aria-label="Открыть альбом писем">✉ <span id="album-count">0</span></button></header>
+<section class="shift-heading" aria-label="Текущая смена"><div><span id="shift-number" class="eyebrow"></span><h2 id="shift-title"></h2></div><span id="progress" class="progress"></span></section>
+<section id="letters" class="letters" aria-label="Письма детей"></section>
+<section class="workshop" aria-label="Рабочий стол"><div class="room"><span id="room-state"></span><img src="data:image/webp;base64,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" width="47" height="51" alt="Снеговик-почтальон в варежках"></div><div id="board" class="board" role="group" aria-label="Поле слияния: 7 столбцов, 9 строк"></div><div class="table-footer"><span id="selection">Выбери предмет, чтобы узнать его название</span><button id="return" disabled>↩ Вернуть</button></div></section>
+<section class="guide" aria-label="Помощь снеговика"><p id="tip" role="status" aria-live="polite"></p><button id="confirm-merge" hidden>Всё равно слить</button></section>
+<section id="completion" class="completion" hidden aria-label="Смена завершена"><span class="eyebrow">ВСЕ ПОДАРКИ В ПУТИ</span><h2 id="completion-title"></h2><p id="completion-text"></p><button id="next" class="primary"></button></section>
+<nav class="tools" aria-label="Действия"><button id="undo" disabled>↶ Отменить ход</button><button id="help">Как играть</button><button id="restart">Начать заново</button></nav>
+<details class="chains"><summary>Что из чего получается</summary><div id="chains"></div><p>Цифра на предмете — его уровень. В письме нужен именно указанный предмет.</p></details><p id="save-status" class="save-status"></p><footer>Первые три смены · без энергии и спешки · v6</footer>
+</main>
+<dialog id="album-dialog" aria-labelledby="album-title"><div class="dialog-heading"><h2 id="album-title">Альбом нашей почты</h2><button id="album-close" aria-label="Закрыть альбом">✕</button></div><div id="improvements" class="improvements"></div><section id="reply" hidden><h3>Ответ от Миши</h3><p>«Дедушка, волчок приехал! Мы с дедушкой запускали его весь вечер. А это ваша почта. Спасибо!»</p><svg class="drawing" viewBox="0 0 320 170" role="img" aria-label="Детский рисунок: почтовый домик, снеговик и сердечко"><rect width="320" height="170" rx="12" fill="#fff9e9"/><g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><path d="M18 149 Q92 137 159 148 T302 146" stroke="#99c6d4"/><path d="M65 137V78L170 80V137M52 79L117 28 185 80" stroke="#bc7353"/><path d="M85 92H108V114H85ZM131 137V105H151V137" stroke="#4c9a9e"/><path d="M128 48V59M122 54H134" stroke="#d0a444"/><path d="M225 57C200 39 192 64 225 83 258 63 247 40 225 57Z" stroke="#d76b6b"/><circle cx="239" cy="125" r="20" stroke="#99baca"/><circle cx="239" cy="98" r="12" stroke="#99baca"/><path d="M232 102Q239 109 246 102M226 111L253 113M255 121L276 107" stroke="#578e8a"/></g><circle cx="235" cy="96" r="1.8" fill="#5d5146"/><circle cx="243" cy="96" r="1.8" fill="#5d5146"/></svg></section><div id="album-entries"></div></dialog>
+<dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-heading"><h2 id="help-title">Устроимся за столом</h2><button id="help-close" aria-label="Закрыть помощь">✕</button></div><p>Нажми на генератор в верхнем ряду — появится заготовка. Запас бесконечный, энергия не нужна.</p><p>Перетащи два одинаковых предмета друг на друга. Можно и без перетаскивания: выбери предмет, затем нажми на другой или на пустую клетку. Клавиатура: Tab, Enter или пробел; Escape снимает выбор.</p><p>Слияние снимает один слой снега с четырёх соседних клеток. Подо льдом иногда виден подарок. Для отправки его сначала нужно разморозить.</p><p>Ненужную вещь перетащи в её генератор или выбери и нажми «Вернуть». «Отменить ход» возвращает последнее действие.</p><p>Отправь все три письма — закончится смена. Следующую начнём с чистого стола, но письма и улучшения останутся в альбоме. Убирать весь снег не нужно.</p></dialog>
+<dialog id="restart-dialog" aria-labelledby="restart-title"><h2 id="restart-title">Начать с первой смены?</h2><p>Стол, альбом и улучшения будут сброшены. Старый прототип v5 останется нетронутым.</p><div class="tools"><button id="restart-cancel">Продолжить игру</button><button id="restart-confirm" class="primary">Начать заново</button></div></dialog>
+<script>
+/* DOM-free rules shared by the browser and Node tests. */
+(function (root) {
+  'use strict';
+  const COLS = 7, ROWS = 9, VERSION = 6;
+  const CHAINS = {
+    wood: { name: 'Дерево', generator: '🧰', items: ['🪵', '🧱', '🪀', '🐴'], names: ['Заготовка', 'Кубик', 'Волчок', 'Лошадка'] },
+    cloth: { name: 'Шитьё', generator: '🧺', items: ['🧶', '🧤', '🧢', '🧣'], names: ['Клубок', 'Пара варежек', 'Шапка', 'Шарф'] },
+    bake: { name: 'Выпечка', generator: '🥣', items: ['🥟', '🍪', '🥮', '🏠'], names: ['Тесто', 'Печенье', 'Пряник', 'Пряничный домик'] }
+  };
+  const item = (chain, level) => ({ chain, level });
+  const letter = (who, text, want) => ({ who, text, want });
+  const SHIFTS = [
+    { title: 'Первые посылки', generators: { D1: 'wood' },
+      start: { C3: item('wood', 1), D3: item('wood', 1), C4: item('wood', 2), D4: item('wood', 2) },
+      letters: [letter('Миша', 'Хочу волчок. Покажу дедушке, как он крутится!', [item('wood', 3)]),
+        letter('Аня', 'Нужны два кубика для ворот моего игрушечного дома.', [item('wood', 2), item('wood', 2)]),
+        letter('Тимофей', 'Мечтаю о маленькой деревянной лошадке.', [item('wood', 4)])],
+      rewards: ['Вывеска почты', 'Швейное рабочее место'],
+      ending: 'Повесили вывеску почты и подготовили место для шитья. Следующая смена — подарки из дерева и пряжи.' },
+    { title: 'Подарки брату и сестре', generators: { B1: 'wood', F1: 'cloth' },
+      start: { C3: item('wood', 3), D3: item('cloth', 1), E3: item('cloth', 2) },
+      frozen: { D6: item('cloth', 2) },
+      letters: [letter('Вера', 'Мне варежки, а братику — волчок. Мы вместе пойдём гулять.', [item('cloth', 2), item('wood', 3)]),
+        letter('Коля', 'Моя шапка всё время сползает. Можно новую?', [item('cloth', 3)]),
+        letter('Лена', 'Пришли шарф и кубик. Кубик нужен для домика моей куклы.', [item('cloth', 4), item('wood', 2)])],
+      rewards: ['Починенное окно', 'Печь для выпечки'],
+      ending: 'Поправили окно — больше не дует! Подготовили печь: в следующую смену будем печь подарки.' },
+    { title: 'Посылки к чаепитию', generators: { B1: 'wood', D1: 'cloth', F1: 'bake' },
+      start: { C3: item('bake', 1), D3: item('bake', 1), E3: item('cloth', 2), C4: item('wood', 3) },
+      frozen: { D6: item('bake', 3) },
+      letters: [letter('Петя', 'Пряник мне, а варежки — сестрёнке.', [item('bake', 3), item('cloth', 2)]),
+        letter('Соня', 'Хочу устроить куклам чаепитие. Нужны два печенья и волчок для гостей.', [item('bake', 2), item('bake', 2), item('wood', 3)]),
+        letter('Алёша', 'Пришли пряничный домик. Мы с папой поставим его под ёлку.', [item('bake', 4)])],
+      rewards: ['Полка готовых посылок', 'Первый ответ ребёнка'],
+      ending: 'На полке уже ждут посылки, а снеговик принёс ответ от Миши с рисунком. Все три смены пройдены!' }
+  ];
+  const clone = value => JSON.parse(JSON.stringify(value));
+  const at = coord => (Number(coord.slice(1)) - 1) * COLS + coord.charCodeAt(0) - 65;
+  const coord = i => String.fromCharCode(65 + i % COLS) + (Math.floor(i / COLS) + 1);
+  const key = x => x.chain + ':' + x.level;
+  const isItem = x => !!x && Object.hasOwn(CHAINS, x.chain) && Number.isInteger(x.level) && x.level >= 1 && x.level <= 4;
+  const label = x => CHAINS[x.chain].names[x.level - 1];
+  function makeBoard(shift) {
+    const board = Array.from({ length: COLS * ROWS }, (_, i) => {
+      const r = Math.floor(i / COLS), c = i % COLS;
+      if (!r) return { blocked: true };
+      const snow = shift === 1 ? (r >= 7 || (r >= 3 && (c < 2 || c > 4))) : r >= 5;
+      return snow ? { snow: shift === 2 && r === 5 && [0, 1, 5, 6].includes(c) ? 2 : 1 } : null;
+    });
+    const def = SHIFTS[shift];
+    for (const [p, chain] of Object.entries(def.generators)) board[at(p)] = { gen: chain };
+    for (const [p, x] of Object.entries(def.start)) board[at(p)] = clone(x);
+    for (const [p, x] of Object.entries(def.frozen || {})) board[at(p)] = { snow: 1, hidden: clone(x) };
+    return board;
+  }
+  function fresh() { return { version: VERSION, shift: 0, board: makeBoard(0), sent: [], album: [], upgrades: [], moves: 0, tutorial: 0 }; }
+  function count(state) {
+    const counts = {};
+    state.board.forEach(x => { if (isItem(x)) counts[key(x)] = (counts[key(x)] || 0) + 1; });
+    return counts;
+  }
+  function needs(want) {
+    const result = {};
+    want.forEach(x => { result[key(x)] = (result[key(x)] || 0) + 1; });
+    return result;
+  }
+  const complete = state => state.sent.length === SHIFTS[state.shift].letters.length;
+  function canSend(state, n) {
+    const L = SHIFTS[state.shift].letters[n];
+    if (!L || state.sent.includes(n)) return false;
+    const have = count(state);
+    return Object.entries(needs(L.want)).every(([k, amount]) => (have[k] || 0) >= amount);
+  }
+  function validate(state) {
+    if (!state || state.version !== VERSION || !Number.isInteger(state.shift) || !SHIFTS[state.shift]) return false;
+    if (!Array.isArray(state.board) || state.board.length !== 63 || !Array.isArray(state.sent) || !Array.isArray(state.album) || !Array.isArray(state.upgrades)) return false;
+    if (!Number.isInteger(state.moves) || state.moves < 0 || !Number.isInteger(state.tutorial) || state.tutorial < 0 || state.tutorial > 3) return false;
+    if (new Set(state.sent).size !== state.sent.length || !state.sent.every(n => Number.isInteger(n) && n >= 0 && n < 3)) return false;
+    const initial = makeBoard(state.shift), generators = Object.values(SHIFTS[state.shift].generators);
+    const plain = x => isItem(x) && Object.keys(x).length === 2 && generators.includes(x.chain);
+    for (let i = 0; i < 63; i++) {
+      const x = state.board[i], start = initial[i];
+      if (i < 7) { if (JSON.stringify(x) !== JSON.stringify(start)) return false; continue; }
+      if (x === null || plain(x)) continue;
+      if (!x || !Number.isInteger(x.snow) || x.snow < 1 || x.snow > (start?.snow || 0)) return false;
+      if (Object.keys(x).some(k => !['snow', 'hidden'].includes(k))) return false;
+      if (JSON.stringify(x.hidden) !== JSON.stringify(start.hidden)) return false;
+    }
+    const expected = [];
+    for (let s = 0; s <= state.shift; s++) for (let l = 0; l < 3; l++) if (s < state.shift || state.sent.includes(l)) expected.push({ shift: s, letter: l });
+    if (state.album.length !== expected.length || !expected.every(e => state.album.some(a => a && a.shift === e.shift && a.letter === e.letter))) return false;
+    const last = complete(state) ? state.shift + 1 : state.shift;
+    return JSON.stringify(state.upgrades) === JSON.stringify(SHIFTS.slice(0, last).flatMap(s => s.rewards));
+  }
+  class Game {
+    constructor(saved) { this.state = validate(saved) ? clone(saved) : fresh(); this.history = []; }
+    remember() { this.history.push(clone(this.state)); if (this.history.length > 40) this.history.shift(); }
+    undo() {
+      if (!this.history.length) return { ok: false, text: 'Пока нечего отменять.' };
+      this.state = this.history.pop(); return { ok: true, text: 'Последнее действие отменено.' };
+    }
+    act(action) {
+      const s = this.state, board = s.board;
+      if (action.type === 'next') {
+        if (!complete(s) || s.shift >= SHIFTS.length - 1) return { ok: false, text: 'Сначала отправим все письма.' };
+        s.shift++; s.board = makeBoard(s.shift); s.sent = []; s.moves = 0; s.tutorial = 3; this.history = [];
+        return { ok: true, text: 'Убрали остатки со стола. Начинаем новую смену!' };
+      }
+      if (complete(s)) return { ok: false, text: 'Смена закончена. Можно отменить ход или продолжить.' };
+      if (action.type === 'spawn') {
+        const from = action.from;
+        if (!board[from]?.gen) return { ok: false, text: 'Выбери генератор в верхнем ряду.' };
+        let target = -1, distance = Infinity;
+        for (let i = 0; i < board.length; i++) {
+          if (board[i] !== null) continue;
+          const d = Math.abs(i % COLS - from % COLS) + Math.abs(Math.floor(i / COLS) - Math.floor(from / COLS));
+          if (d < distance) { target = i; distance = d; }
+        }
+        if (target < 0) return { ok: false, text: 'На столе нет места. Слей предметы, отправь письмо или верни лишнее.' };
+        this.remember(); board[target] = item(board[from].gen, 1); s.moves++;
+        return { ok: true, text: label(board[target]) + ' на клетке ' + coord(target) + '.', pop: target };
+      }
+      if (action.type === 'return') {
+        const x = board[action.from];
+        if (!isItem(x)) return { ok: false, text: 'Вернуть можно только обычный предмет.' };
+        this.remember(); board[action.from] = null; s.moves++;
+        return { ok: true, text: label(x) + ': убрали в запас. Генератор поможет сделать новый.' };
+      }
+      if (action.type === 'send') {
+        if (!canSend(s, action.letter)) return { ok: false, text: 'Сначала собери весь комплект письма. Замороженные подарки нужно освободить.' };
+        this.remember();
+        const L = SHIFTS[s.shift].letters[action.letter];
+        for (const w of L.want) board[board.findIndex(x => isItem(x) && key(x) === key(w))] = null;
+        s.sent.push(action.letter); s.album.push({ shift: s.shift, letter: action.letter }); s.moves++;
+        if (s.shift === 0) s.tutorial = 3;
+        if (complete(s)) s.upgrades.push(...SHIFTS[s.shift].rewards);
+        return { ok: true, text: 'Посылка отправлена! Получатель: ' + L.who + '.' };
+      }
+      if (action.type !== 'drop') return { ok: false, text: 'Неизвестное действие.' };
+      const { from, to } = action;
+      if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < 0 || from >= 63 || to >= 63 || from === to) return { ok: false, text: 'Выбери другую клетку.' };
+      const a = board[from], b = board[to];
+      if (!isItem(a)) return { ok: false, text: 'Генераторы, снег и лёд остаются на своих местах.' };
+      if (b?.gen) {
+        if (b.gen === a.chain) return this.act({ type: 'return', from });
+        return { ok: false, text: 'Этот предмет принимает только генератор «' + CHAINS[a.chain].name + '».' };
+      }
+      if (b?.snow || b?.blocked) return { ok: false, text: 'Здесь нет места. Снег тает от слияний в соседних клетках.' };
+      if (isItem(b) && key(a) === key(b)) {
+        if (a.level === 4) return { ok: false, text: 'Это последний предмет цепочки. Его можно переместить, отправить или вернуть.' };
+        const have = count(s)[key(a)];
+        const remaining = SHIFTS[s.shift].letters.filter((_, n) => !s.sent.includes(n)).flatMap(L => L.want).filter(x => key(x) === key(a)).length;
+        if (!action.force && remaining > 0 && have - 2 < remaining) return { ok: false, warning: true, text: label(a) + ' ещё нужен для письма. Слить всё равно? Сделать его заново можно в генераторе.' };
+        this.remember(); board[from] = null; board[to] = item(a.chain, a.level + 1); s.moves++;
+        let melted = 0, released = 0;
+        for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const c = to % COLS + dc, r = Math.floor(to / COLS) + dr;
+          if (c < 0 || c >= COLS || r < 0 || r >= ROWS) continue;
+          const i = r * COLS + c, x = board[i];
+          if (!x?.snow) continue;
+          x.snow--; melted++;
+          if (!x.snow) { board[i] = x.hidden || null; if (x.hidden) released++; }
+        }
+        if (s.shift === 0) s.tutorial = Math.min(2, s.tutorial + 1);
+        return { ok: true, pop: to, text: label(board[to]) + ' готов.' + (melted ? ' Снято слоёв снега: ' + melted + '.' : '') + (released ? ' Освободили подарок изо льда!' : '') };
+      }
+      this.remember(); board[from] = b; board[to] = a; s.moves++;
+      return { ok: true, text: b ? 'Поменяли предметы местами.' : 'Предмет перемещён.', pop: to };
+    }
+  }
+  const api = { COLS, ROWS, VERSION, CHAINS, SHIFTS, Game, fresh, makeBoard, at, coord, isItem, label, key, count, canSend, complete, validate };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.PostGame = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+</script>
+<script>
+(function () {
+  'use strict';
+  const E = window.PostGame, $ = id => document.getElementById(id);
+  const KEY = 'pochta-shifts-v6';
+  let initial, loadMessage = '', storageFailed = false;
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      initial = JSON.parse(raw);
+      if (!E.validate(initial)) { initial = undefined; loadMessage = 'Сохранение не удалось прочитать. Начинаем первую смену.'; }
+    }
+  } catch (_) { loadMessage = 'Сохранение недоступно. Игра работает, но прогресс может не сохраниться.'; }
+  let game = new E.Game(initial), selected = null, pending = null, drag = null, ghost = null;
+  let lastPointerClick = 0;
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(game.state)); storageFailed = false; }
+    catch (_) { storageFailed = true; }
+    $('save-status').textContent = storageFailed ? 'Не удалось сохранить. Не закрывай страницу, если хочешь продолжить эту смену.' : 'Прогресс сохраняется в этом браузере · отмена ходов — до перезагрузки';
+  }
+  function node(tag, className, text) {
+    const el = document.createElement(tag);
+    if (className) el.className = className;
+    if (text !== undefined) el.textContent = text;
+    return el;
+  }
+  function tip(text, warn = false) {
+    $('tip').textContent = text;
+    $('tip').parentElement.classList.toggle('warning', warn);
+  }
+  function intro() {
+    const s = game.state;
+    if (E.complete(s)) return 'Все посылки отправлены! Можно закончить смену или отменить последний ход.';
+    if (s.shift === 0) {
+      if (s.tutorial === 0) return 'Начнём с Мишиного волчка. Соедини заготовки C3 и D3: перетащи одну на другую или нажми на них по очереди.';
+      if (s.tutorial === 1) return 'Кубик готов! Соедини два кубика — получится волчок. Если кубики нужны Ане, можно сначала сделать запас.';
+      if (s.tutorial === 2) return 'Проверь письма: готовый комплект можно отправить. За новыми заготовками нажми на ящик в верхнем ряду.';
+      return 'Собери подарки для остальных писем. Слияние у сугроба снимет с него один слой снега.';
+    }
+    return s.shift === 1 ? 'Сегодня два производства. Вере уже можно отправить подарок. Подо льдом D6 спрятаны ещё одни варежки.' : 'Соберём посылки к чаепитию. Пряник D6 можно разморозить и отправить или превратить в половину домика.';
+  }
+  function render(popAt) {
+    const s = game.state, def = E.SHIFTS[s.shift], done = E.complete(s);
+    const oldFocus = document.activeElement;
+    const focusCell = oldFocus?.dataset?.cell;
+    const focusLetter = oldFocus?.dataset?.letter;
+    $('shift-number').textContent = 'СМЕНА ' + (s.shift + 1) + ' ИЗ 3';
+    $('shift-title').textContent = def.title;
+    $('progress').textContent = s.sent.length + ' / 3 писем';
+    $('album-count').textContent = s.album.length;
+    $('room-state').textContent = s.upgrades.length ? 'В нашей почте: ' + s.upgrades.filter((_, i) => i % 2 === 0).join(' · ') : 'За окном мороз. Зажгли лампу — можно работать.';
+    const have = E.count(s), wanted = {};
+    def.letters.forEach((L, n) => { if (!s.sent.includes(n)) L.want.forEach(w => { wanted[E.key(w)] = true; }); });
+    const letters = document.createDocumentFragment();
+    def.letters.forEach((L, n) => {
+      const sent = s.sent.includes(n), ready = E.canSend(s, n);
+      const card = node('article', 'letter' + (sent ? ' done' : ''));
+      card.append(node('h3', '', L.who), node('p', '', '«' + L.text + '»'));
+      const want = node('div', 'want'), left = { ...have };
+      L.want.forEach(w => {
+        const available = (left[E.key(w)] || 0) > 0;
+        const el = node('span', sent || available ? 'have' : '', E.CHAINS[w.chain].items[w.level - 1]);
+        el.title = E.label(w); el.setAttribute('aria-label', E.label(w) + (sent ? ': отправлено' : available ? ': готово' : ': нужно собрать'));
+        el.append(node('small', '', w.level)); want.append(el);
+        if (available) left[E.key(w)]--;
+      });
+      const button = node('button', ready ? 'ready' : '', sent ? 'Отправлено' : ready ? 'Отправить' : 'Собери подарок');
+      button.disabled = !ready; button.dataset.letter = n;
+      button.setAttribute('aria-label', 'Письмо: ' + L.who + '. ' + button.textContent);
+      button.addEventListener('click', () => execute({ type: 'send', letter: n }));
+      card.append(want, button); letters.append(card);
+    });
+    $('letters').replaceChildren(letters);
+    const cells = document.createDocumentFragment();
+    s.board.forEach((x, i) => {
+      const el = node('button', 'cell'); el.dataset.cell = i;
+      const place = E.coord(i);
+      let title = place + ': пустое место', icon = '';
+      if (x?.blocked) { el.classList.add('blocked'); el.disabled = true; title = place + ': недоступно'; }
+      else if (x?.gen) { el.classList.add('gen'); icon = E.CHAINS[x.gen].generator; title = place + ': ' + E.CHAINS[x.gen].name + ', нажми для заготовки'; }
+      else if (x?.snow) {
+        el.classList.add('snow'); if (x.snow === 2) el.classList.add('double');
+        if (x.hidden) { el.classList.add('frozen'); icon = E.CHAINS[x.hidden.chain].items[x.hidden.level - 1]; }
+        else icon = x.snow === 2 ? '❄' : '☁';
+        title = place + ': ' + (x.hidden ? E.label(x.hidden) + ' подо льдом' : 'снег') + ', слоёв: ' + x.snow;
+        el.append(node('small', 'level', x.snow + '❄'));
+      } else if (E.isItem(x)) {
+        icon = E.CHAINS[x.chain].items[x.level - 1]; title = place + ': ' + E.label(x) + ', уровень ' + x.level;
+        el.append(node('small', 'level', x.level));
+        if (wanted[E.key(x)]) el.classList.add('needed');
+      }
+      el.prepend(node('span', 'icon', icon));
+      el.title = title; el.setAttribute('aria-label', title);
+      el.setAttribute('aria-pressed', String(selected === i));
+      if (selected === i) el.classList.add('selected');
+      if (i === popAt) el.classList.add('pop');
+      if (!done && !s.shift && !s.tutorial && [E.at('C3'), E.at('D3')].includes(i) && E.isItem(x)) el.classList.add('hint');
+      if (done && !x?.blocked) el.disabled = true;
+      cells.append(el);
+    });
+    $('board').replaceChildren(cells);
+    $('selection').textContent = selected !== null && E.isItem(s.board[selected]) ? E.label(s.board[selected]) + ' · ' + E.coord(selected) : 'Выбери предмет · перетащи или нажми две клетки';
+    $('return').disabled = done || selected === null || !E.isItem(s.board[selected]);
+    $('undo').disabled = !game.history.length;
+    $('completion').hidden = !done;
+    if (done) {
+      $('completion-title').textContent = s.shift === 2 ? 'Почта оживает!' : 'Хорошая получилась смена';
+      const leftover = s.board.filter(E.isItem).length;
+      $('completion-text').textContent = def.ending + (s.shift < 2 ? ' На столе осталось предметов: ' + leftover + '. Перед новой сменой уберём их в запас.' : ' Спасибо за игру — дальше будем придумывать новые смены.');
+      $('next').textContent = s.shift === 2 ? 'Посмотреть ответ и альбом' : 'Убрать стол · смена ' + (s.shift + 2);
+    }
+    const chains = document.createDocumentFragment();
+    Object.values(def.generators).forEach(c => {
+      const row = node('div', 'chain-row'); row.append(node('b', '', E.CHAINS[c].generator + ' ' + E.CHAINS[c].name));
+      const steps = node('div', 'steps');
+      E.CHAINS[c].names.forEach((name, l) => { if (l) steps.append(node('span', '', '→')); steps.append(node('span', 'step', E.CHAINS[c].items[l] + ' ' + name)); });
+      row.append(steps); chains.append(row);
+    });
+    $('chains').replaceChildren(chains);
+    if (focusCell !== undefined) $('board').querySelector('[data-cell="' + focusCell + '"]')?.focus({ preventScroll: true });
+    if (focusLetter !== undefined) {
+      const btn = $('letters').querySelector('[data-letter="' + focusLetter + '"]');
+      if (!btn.disabled) btn.focus({ preventScroll: true });
+      else if (done) $('next').focus({ preventScroll: true });
+      else $('board').querySelector('.gen').focus({ preventScroll: true });
+    }
+  }
+  function clearPending() { pending = null; $('confirm-merge').hidden = true; }
+  function execute(action) {
+    clearPending();
+    const result = action.type === 'undo' ? game.undo() : game.act(action);
+    if (result.warning) { pending = action; $('confirm-merge').hidden = false; tip(result.text, true); return; }
+    if (!result.ok) { tip(result.text, true); return; }
+    selected = null; save(); render(result.pop);
+    tip(result.text + (game.state.shift === 0 && action.type !== 'undo' ? ' ' + intro() : ''));
+  }
+  function activate(i) {
+    clearPending();
+    if (E.complete(game.state)) return;
+    const x = game.state.board[i];
+    if (selected !== null && selected !== i) { execute({ type: 'drop', from: selected, to: i }); return; }
+    if (x?.gen) { selected = null; execute({ type: 'spawn', from: i }); }
+    else if (E.isItem(x)) { selected = selected === i ? null : i; render(); tip(selected === null ? intro() : E.label(x) + ': нажми на другую клетку или «Вернуть».'); }
+    else if (x?.snow) tip(x.hidden ? E.label(x.hidden) + ' подо льдом. Слей предметы по соседству, чтобы освободить подарок.' : 'Слей предметы у сугроба. Каждое соседнее слияние снимает один слой снега.');
+    else { selected = null; render(); tip(intro()); }
+  }
+  function showAlbum() {
+    const s = game.state;
+    $('improvements').textContent = s.upgrades.length ? 'Улучшения почты: ' + s.upgrades.join(' · ') : 'Здесь появятся улучшения после первой смены.';
+    $('reply').hidden = !(s.shift === 2 && E.complete(s));
+    const entries = document.createDocumentFragment();
+    if (!s.album.length) entries.append(node('p', '', 'Первое отправленное письмо останется здесь.'));
+    s.album.forEach(a => {
+      const L = E.SHIFTS[a.shift].letters[a.letter], row = node('article', 'album-entry');
+      row.append(node('b', '', L.who + ' · смена ' + (a.shift + 1)), node('p', '', '«' + L.text + '»'), node('span', '', '✓ Отправлено: ' + L.want.map(E.label).join(', '))); entries.append(row);
+    });
+    $('album-entries').replaceChildren(entries); $('album-dialog').showModal();
+  }
+  $('board').addEventListener('click', e => {
+    if (Date.now() - lastPointerClick < 350) return;
+    const cell = e.target.closest('[data-cell]'); if (cell) activate(Number(cell.dataset.cell));
+  });
+  $('board').addEventListener('pointerdown', e => {
+    if (e.button !== 0 || drag || E.complete(game.state)) return;
+    const cell = e.target.closest('[data-cell]'); if (!cell || cell.disabled) return;
+    const i = Number(cell.dataset.cell), x = game.state.board[i];
+    drag = { i, pointer: e.pointerId, x: e.clientX, y: e.clientY, moved: false, draggable: E.isItem(x) };
+    cell.focus({ preventScroll: true }); e.preventDefault();
+    $('board').setPointerCapture(e.pointerId);
+  });
+  function under(e) { return document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-cell], #return'); }
+  function clearHover() { document.querySelectorAll('.over').forEach(el => el.classList.remove('over')); }
+  function finishDrag() {
+    const d = drag; drag = null;
+    if (d && $('board').hasPointerCapture(d.pointer)) $('board').releasePointerCapture(d.pointer);
+    if (ghost) ghost.remove(); ghost = null; clearHover();
+    $('return').disabled = E.complete(game.state) || selected === null || !E.isItem(game.state.board[selected]);
+  }
+  window.addEventListener('pointermove', e => {
+    if (!drag || drag.pointer !== e.pointerId || !drag.draggable) return;
+    if (!drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 8) {
+      drag.moved = true; clearPending();
+      const x = game.state.board[drag.i]; ghost = node('div', 'ghost', E.CHAINS[x.chain].items[x.level - 1]); document.body.append(ghost);
+      $('return').disabled = false;
+    }
+    if (!ghost) return;
+    ghost.style.left = e.clientX + 'px'; ghost.style.top = e.clientY + 'px'; clearHover(); under(e)?.classList.add('over');
+  });
+  window.addEventListener('pointerup', e => {
+    if (!drag || drag.pointer !== e.pointerId) return;
+    const d = drag, target = under(e); finishDrag(); lastPointerClick = Date.now();
+    if (!d.moved) {
+      // A stationary pointer outside its original cell is not an activation.
+      if (target?.dataset.cell !== undefined && Number(target.dataset.cell) === d.i) activate(d.i);
+      return;
+    }
+    if (target?.id === 'return') execute({ type: 'return', from: d.i });
+    else if (target?.dataset.cell !== undefined) execute({ type: 'drop', from: d.i, to: Number(target.dataset.cell) });
+  });
+  window.addEventListener('pointercancel', finishDrag);
+  window.addEventListener('blur', finishDrag);
+  $('board').addEventListener('lostpointercapture', () => { if (drag) finishDrag(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { selected = null; clearPending(); finishDrag(); render(); tip(intro()); }
+  });
+  $('return').addEventListener('click', () => { if (selected !== null) execute({ type: 'return', from: selected }); });
+  $('undo').addEventListener('click', () => execute({ type: 'undo' }));
+  $('confirm-merge').addEventListener('click', () => { if (pending) execute({ ...pending, force: true }); });
+  $('next').addEventListener('click', () => { if (game.state.shift === 2) showAlbum(); else { execute({ type: 'next' }); tip(intro()); $('shift-title').scrollIntoView({ block: 'start', behavior: 'instant' }); } });
+  $('album-open').addEventListener('click', showAlbum);
+  $('album-close').addEventListener('click', () => $('album-dialog').close());
+  $('help').addEventListener('click', () => $('help-dialog').showModal());
+  $('help-close').addEventListener('click', () => $('help-dialog').close());
+  $('restart').addEventListener('click', () => $('restart-dialog').showModal());
+  $('restart-cancel').addEventListener('click', () => $('restart-dialog').close());
+  $('restart-confirm').addEventListener('click', () => { finishDrag(); game = new E.Game(); selected = null; clearPending(); $('restart-dialog').close(); save(); render(); tip(intro()); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { finishDrag(); save(); } });
+  save(); render(); tip(loadMessage || intro());
+})();
+
+</script>
+</body></html>
