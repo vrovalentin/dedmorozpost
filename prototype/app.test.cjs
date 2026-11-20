@@ -56,7 +56,7 @@ function session(storage = new Map()) {
   const sandbox = { document: doc, Date: FakeDate, console, localStorage: { getItem: k => storage.get(k) || null, setItem: (k, v) => storage.set(k, v) }, setInterval: fn => intervals.push(fn), addEventListener() {} };
   sandbox.window = sandbox; const context = vm.createContext(sandbox);
   for (const file of ['content.js', 'engine.js', 'app.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, file), 'utf8'), context, { filename: file });
-  return { doc, storage, context, state: () => JSON.parse(storage.get('pochta-workshops-v9')), advance(ms) { now += ms; intervals.forEach(fn => fn()); } };
+  return { doc, storage, context, state: () => JSON.parse(storage.get('pochta-workshops-v12')), advance(ms) { now += ms; intervals.forEach(fn => fn()); } };
 }
 test('Actual UI handlers: initial render → recipe → craft → send → delayed answer → heart → snow', () => {
   const s = session(), $ = id => s.doc.getElementById(id);
@@ -79,7 +79,7 @@ test('UI reload reads its own save, catalog has eight tiers, and errors in stora
   const first = session(); const state = first.state();
   const second = session(first.storage); assert.deepEqual(second.state(), state);
   const catalog = second.doc.getElementById('catalog'); assert.equal(catalog.querySelectorAll('.catalog-part').length, 8); assert.equal(catalog.querySelectorAll('.catalog-gift').length, 8);
-  const broken = new Map([['pochta-workshops-v9', '{broken json']]); const recovered = session(broken); assert.match(recovered.doc.getElementById('tip').textContent, /Хранилище/); assert.equal(recovered.state().version, 9);
+  const broken = new Map([['pochta-workshops-v12', '{broken json']]); const recovered = session(broken); assert.match(recovered.doc.getElementById('tip').textContent, /Хранилище/); assert.equal(recovered.state().version, 12);
 });
 
 test('Board gestures assemble a gift and change the letter action to Send without opening recipe', () => {
@@ -94,6 +94,58 @@ test('Board gestures assemble a gift and change the letter action to Send withou
 test('An existing v8 save migrates automatically and stays untouched', () => {
   const first = session(), old = first.state(); old.version = 8; delete old.giftStore;
   const serialized = JSON.stringify(old), storage = new Map([['pochta-workshops-v8', serialized]]);
-  const upgraded = session(storage); assert.equal(upgraded.state().version, 9); assert.equal(upgraded.state().letters[0].id, old.letters[0].id);
+  const upgraded = session(storage); assert.equal(upgraded.state().version, 12); assert.equal(upgraded.state().letters[0].id, old.letters[0].id);
   assert.equal(storage.get('pochta-workshops-v8'), serialized); assert.match(upgraded.doc.getElementById('tip').textContent, /перенесён/);
+});
+
+test('UI offers dismantling for both a field gift and a packed gift', () => {
+  const s = session(), $ = id => s.doc.getElementById(id);
+  const clickCell = i => $('board').events.click[0]({ target: $('board').children[i] });
+  clickCell(23); clickCell(16); clickCell(16);
+  assert.equal($('return').textContent, '↩ Разобрать'); assert(!$('return').disabled); $('return').click();
+  assert(!s.state().board.some(x => x?.gift));
+  $('letters').children[0].querySelector('button').click(); $('recipe-items').querySelector('button').click();
+  const dismantle = $('recipe-items').querySelector('button'); assert.equal(dismantle.textContent, 'Разобрать на детали'); dismantle.click();
+  assert.equal(s.state().letters[0].packed[0], false); assert.equal($('energy').textContent, '40 / 40');
+});
+
+test('Blue sprites stay consistent across board, letter and recipe, with a readable fallback', () => {
+  const s = session(), $ = id => s.doc.getElementById(id);
+  const generator = $('board').children[3].querySelector('img'); assert.match(generator.src, /generator.webp$/);
+  assert.match($('board').children[16].querySelector('img').src, /part-1.webp$/);
+  const letter = $('letters').children[0]; const giftImage = letter.querySelector('img'); assert.match(giftImage.src, /gift-1.webp$/);
+  letter.querySelector('button').click();
+  assert.equal($('recipe-items').querySelector('img').src, giftImage.src);
+  assert.equal($('recipe-items').querySelectorAll('.part-chip').length, 2);
+  generator.events.error[0](); assert.equal($('board').children[3].querySelector('img'), null); assert.match($('board').children[3].textContent, /🧰/);
+  assert.equal(s.state().version, 12); // Current save schema.
+});
+
+test('Three-cell production bench creates a part with a single click without losing usable board space', () => {
+  const s = session(), $ = id => s.doc.getElementById(id);
+  const station = $('generators').children[0]; assert.match(station.attrs['aria-label'], /три клетки/);
+  const before = s.state(), empty = before.board.filter(x => x === null).length;
+  station.click(); const after = s.state(); assert.equal(after.energy, before.energy - 1);
+  assert.equal(after.board.filter(x => x === null).length, empty - 1);
+  assert.equal(after.board.filter(x => x?.gen).length, 1);
+});
+
+test('Snow artwork distinguishes all three costs and clearance reveals one find without changing rewards', () => {
+  const E = require('./engine.js'), g = new E.Game(undefined, () => 1000000, () => .5);
+  const order = g.state.letters[0];
+  assert(g.act({ type: 'craft', orderId: order.id, giftIndex: 0 }).ok);
+  assert(g.act({ type: 'send', orderId: order.id }).ok);
+  g.state.mail[0].dueAt = 1000000;
+  assert(g.act({ type: 'claim', mailId: g.state.mail[0].id }).ok);
+  const s = session(new Map([['pochta-workshops-v12', JSON.stringify(g.state)]])), $ = id => s.doc.getElementById(id);
+  for (const [cell, file, cost] of [['B4','loose',1],['D6','packed',2],['D9','ice',5]]) {
+    const el = $('board').children[E.at(cell)]; assert.match(el.querySelector('img').src, new RegExp(file+'\\.webp$')); assert.equal(el.querySelector('.level').textContent, cost+'♡');
+  }
+  assert.equal($('snow-legend').children.length, 3);
+  const select = cell => $('board').events.click[0]({target:$('board').children[E.at(cell)]});
+  select('D9'); assert($('melt').disabled); assert($('find-feedback').hidden);
+  select('B4'); assert(!$('melt').disabled); $('melt').click();
+  assert.equal(s.state().thanks, 0); assert.equal(s.state().cleared.length, 1); assert.equal(s.state().board[E.at('B4')], null);
+  assert(!$('find-feedback').hidden); assert.match($('find-title').textContent, /Станина/); assert($('board').children[E.at('B4')].querySelector('.clear-effect'));
+  $('undo').click(); assert.equal(s.state().thanks, 1); assert.equal(s.state().cleared.length, 0); assert($('find-feedback').hidden);
 });

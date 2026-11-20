@@ -3,7 +3,7 @@
   'use strict';
   const C = typeof module !== 'undefined' && module.exports ? require('./content.js') : root.PostContent;
   const { CHAINS, RECIPES, SNOW, SHIFTS, CACHES, at, coord, makeBoard, item } = C;
-  const VERSION = 9, MAX_ENERGY = 20, REGEN_MS = 30000, MAIL_MS = 20000;
+  const VERSION = 12, MAX_ENERGY = 40, REGEN_MS = 30000, MAIL_MS = 20000;
   const clone = x => JSON.parse(JSON.stringify(x));
   const key = x => x.chain + ':' + x.level;
   const isItem = x => !!x && Object.hasOwn(CHAINS, x.chain) && Number.isInteger(x.level) && x.level >= 1 && x.level <= 8;
@@ -114,6 +114,7 @@
       const ids = new Set();
       for (const m of s.mail) {
         if (!m || !Number.isInteger(m.id) || m.id <= 0 || m.id >= s.nextMailId || ids.has(m.id) || !validOrder(m.order) || !Number.isInteger(m.shift) || m.shift < 0 || m.shift > s.shift || ![1, 2].includes(m.attempt) || !['success', 'lost', 'damaged'].includes(m.outcome) || typeof m.claimed !== 'boolean' || !Number.isFinite(m.dueAt) || m.dueAt < 0) return false;
+        if (![0, 1].includes(m.bonusEnergy) || (m.outcome !== 'success' && m.bonusEnergy !== 0)) return false;
         if (m.attempt === 2 && (m.outcome !== 'success' || !s.mail.some(p => p.order.id === m.order.id && p.attempt === 1 && p.outcome === 'lost' && p.claimed))) return false;
         if (s.mail.some(p => p !== m && p.order.id === m.order.id && p.attempt === m.attempt)) return false;
         ids.add(m.id);
@@ -151,8 +152,11 @@
     } catch (_) { return false; }
   }
   function migrate(saved) {
-    if (saved?.version === 8) {
-      const candidate = { ...clone(saved), version: VERSION, giftStore: [] };
+    if ([8, 9, 10].includes(saved?.version)) {
+      if (!Array.isArray(saved.mail) || !Number.isInteger(saved.energy)) return null;
+      const candidate = { ...clone(saved), version: VERSION, giftStore: saved.giftStore || [], energy: Math.min(MAX_ENERGY, saved.energy + (saved.version === 10 ? 10 : 20)) };
+      if (candidate.mail.some(m => !m)) return null;
+      if (saved.version < 10) candidate.mail.forEach(m => { m.bonusEnergy = 0; });
       return validate(candidate) ? candidate : null;
     }
     return validate(saved) ? saved : null;
@@ -210,7 +214,7 @@
         return ok(label(b[target]) + ' · уровень ' + level + '. −1 ❄', target);
       }
       if (a.type === 'return') {
-        if (isAssembly(b[a.from])) return this.act({ type: 'disassemble', cell: a.from });
+        if (isAssembly(b[a.from]) || isGift(b[a.from])) return this.act({ type: 'disassemble', cell: a.from });
         const x = b[a.from]; if (!isItem(x)) return fail('Вернуть можно только запчасть.');
         this.remember(); b[a.from] = null; s.moves++; return ok('Освободили клетку. Снежинки за запчасть не возвращаются.');
       }
@@ -222,12 +226,20 @@
         return ok(giftName(L.want[a.giftIndex]) + ' собран и лежит на упаковочной полке письма.');
       }
       if (a.type === 'disassemble') {
-        const x = b[a.cell]; if (!isAssembly(x)) return fail('Разобрать можно незавершённую сборку.');
+        const L = findOrder(s, a.orderId);
+        const packed = L && L.packed[a.giftIndex], stored = Number.isInteger(a.storeIndex) ? s.giftStore[a.storeIndex] : null;
+        const x = b[a.cell], gift = packed ? L.want[a.giftIndex] : stored || (isGift(x) ? x.gift : null);
+        if (!gift && !isAssembly(x)) return fail('Выбери подарок или незавершённую сборку.');
+        const chain = gift ? gift.chain : x.assembly.chain;
+        const levels = gift ? RECIPES[gift.level - 1] : x.assembly.parts;
         const empty = b.flatMap((p, i) => p === null ? [i] : []);
-        if (empty.length < x.assembly.parts.length - 1) return fail('Для возврата всех деталей нужно ещё ' + (x.assembly.parts.length - 1) + ' свободных клеток. Сборка не потеряна.');
+        const slots = packed || stored ? empty : [a.cell, ...empty];
+        if (slots.length < levels.length) return fail('Для всех деталей нужно ' + levels.length + ' клеток. Освободи ещё ' + (levels.length - slots.length) + '. Подарок сохранён.');
         this.remember();
-        const slots = [a.cell, ...empty]; x.assembly.parts.forEach((level, i) => { b[slots[i]] = item(x.assembly.chain, level); }); s.moves++;
-        return ok('Сборка разобрана, все детали возвращены на поле.', a.cell);
+        if (packed) L.packed[a.giftIndex] = false;
+        if (stored) s.giftStore.splice(a.storeIndex, 1);
+        levels.forEach((level, i) => { b[slots[i]] = item(chain, level); }); s.moves++;
+        return ok('Все детали возвращены на поле по рецепту.', packed || stored ? slots[0] : a.cell);
       }
       if (a.type === 'protect') {
         const L = findOrder(s, a.orderId), index = s.bag.findIndex(t => t.kind === 'tag');
@@ -247,7 +259,7 @@
         const chance = rates(s), roll = L.retry || L.protected ? 0 : this.roll();
         const success = Math.round((1 - chance.lost - chance.damaged) * 100) / 100;
         const outcome = roll < success ? 'success' : roll < success + chance.lost ? 'lost' : 'damaged';
-        s.mail.push({ id: s.nextMailId++, order: clone(L), attempt: L.retry ? 2 : 1, outcome, dueAt: this.now() + MAIL_MS / s.speed, claimed: false, shift: s.shift });
+        s.mail.push({ id: s.nextMailId++, order: clone(L), attempt: L.retry ? 2 : 1, outcome, bonusEnergy: outcome === 'success' && this.roll() < .2 ? 1 : 0, dueAt: this.now() + MAIL_MS / s.speed, claimed: false, shift: s.shift });
         const normal = s.letters.findIndex(x => x.id === L.id);
         if (normal >= 0) s.letters[normal] = newLetter(s); else s.extra.splice(s.extra.findIndex(x => x.id === L.id), 1);
         s.moves++;
@@ -257,7 +269,14 @@
         const m = s.mail.find(m => m.id === a.mailId);
         if (!m || m.claimed || m.dueAt > this.now()) return fail('Ответ пока не пришёл или уже открыт.');
         this.remember(); m.claimed = true;
-        if (m.outcome === 'success') { s.thanks++; return ok('Ответ: «Спасибо за подарок!» +1 ♡.'); }
+        if (m.outcome === 'success') {
+          s.thanks++; const overflow = m.bonusEnergy && s.energy === MAX_ENERGY;
+          if (m.bonusEnergy) {
+            if (s.energy < MAX_ENERGY) { s.energy++; if (s.energy === MAX_ENERGY) s.energyAt = this.now(); }
+            else s.bag.push({ id: s.nextToolId++, kind: 'energy', name: 'Снежинка из письма', amount: 1 });
+          }
+          return ok('Ответ: «Спасибо за подарок!» +1 ♡.' + (m.bonusEnergy ? ' +1 ❄' + (overflow ? ' · сохранена в находках.' : '') : ''));
+        }
         if (m.outcome === 'damaged') return ok('Подарок повредился в дороге. За эту посылку нет сердечка. Новые письма продолжают приходить.');
         const retry = clone(m.order); retry.retry = true; retry.protected = false; retry.packed = retry.want.map(() => false);
         s.extra.push(retry);
@@ -297,7 +316,7 @@
       const { from, to } = a; if (![from, to].every(i => Number.isInteger(i) && i >= 0 && i < 63) || from === to) return fail('Выбери другую клетку.');
       const x = b[from], y = b[to]; if (!isMovable(x)) return fail('Передвигать можно запчасти, сборки и подарки.');
       if (y?.gen) {
-        if (isGift(x)) return fail('Готовый подарок нельзя выбросить в генератор. Его можно отправить по письму.');
+        if (isGift(x)) return fail('Выбери подарок и нажми «Разобрать» под столом.');
         const chain = isItem(x) ? x.chain : x.assembly.chain;
         return y.gen === chain ? this.act({ type: 'return', from }) : fail('У этой детали другой генератор.');
       }

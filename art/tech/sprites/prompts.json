@@ -1,0 +1,34 @@
+{
+  "tool": "built-in ImageGen",
+  "reference": "../style-02-blue.png",
+  "sprites": [
+    {
+      "name": "generator",
+      "prompt": "Use the supplied blue concept sheet as the design and palette reference. Create ONE isolated game sprite only, no sheet, no other objects from the reference, no text, no labels, no numbers, no border. Genuine transparent background. Match its rounded bright painted 2.5D casual merge-game style, clear rich cobalt blue with sky-blue highlights, honey wood, warm brass, cream and red accents. Three-quarter view slightly from above, soft upper-left light. Large simple shapes readable in a 48-pixel cell, clean silhouette. Entire object centered with 8% empty margin, no cropped parts, minimal contact shadow and no background plane. Subject: the wooden open toolbox generator at top left of the reference. Honey wood handle and rim, cobalt blue enamel side panels, one brass latch, red screwdriver and silver wrench peeking out, one tiny golden magical glimmer inside. Preserve the reference design."
+    },
+    {
+      "name": "part-1",
+      "prompt": "Use the supplied blue concept sheet as the design and palette reference. Create ONE isolated game sprite only, no sheet, no other objects from the reference, no text, no labels, no numbers, no border. Genuine transparent background. Match its rounded bright painted 2.5D casual merge-game style, clear rich cobalt blue with sky-blue highlights, honey wood, warm brass, cream and red accents. Three-quarter view slightly from above, soft upper-left light. Large simple shapes readable in a 48-pixel cell, clean silhouette. Entire object centered with 8% empty margin, no cropped parts, minimal contact shadow and no background plane. Subject: raw component level 1 inspired by top row second object: simplify to ONE large warm brass bolt with ONE hex nut touching its base, and ONE short curved blue wire with red tip tucked closely alongside. Compact single cluster, only these three big elements, no tiny loose pieces."
+    },
+    {
+      "name": "part-2",
+      "prompt": "Use the supplied blue concept sheet as the design and palette reference. Create ONE isolated game sprite only, no sheet, no other objects from the reference, no text, no labels, no numbers, no border. Genuine transparent background. Match its rounded bright painted 2.5D casual merge-game style, clear rich cobalt blue with sky-blue highlights, honey wood, warm brass, cream and red accents. Three-quarter view slightly from above, soft upper-left light. Large simple shapes readable in a 48-pixel cell, clean silhouette. Entire object centered with 8% empty margin, no cropped parts, minimal contact shadow and no background plane. Subject: the raw mechanical subassembly from top row third object: ONE large warm brass gear on a compact cobalt blue L-shaped bracket and foot, central brass axle, extremely clear bold simple silhouette. Match reference."
+    },
+    {
+      "name": "part-3",
+      "prompt": "Use the supplied blue concept sheet as the design and palette reference. Create ONE isolated game sprite only, no sheet, no other objects from the reference, no text, no labels, no numbers, no border. Genuine transparent background. Match its rounded bright painted 2.5D casual merge-game style, clear rich cobalt blue with sky-blue highlights, honey wood, warm brass, cream and red accents. Three-quarter view slightly from above, soft upper-left light. Large simple shapes readable in a 48-pixel cell, clean silhouette. Entire object centered with 8% empty margin, no cropped parts, minimal contact shadow and no background plane. Subject: the raw electromechanical subassembly from top row fourth object: compact cobalt blue motor housing, ONE broad visible copper coil, short silver output shaft pointing right, cream top plate, blue mounting foot. Simplify vents to two. Match reference."
+    },
+    {
+      "name": "gift-1",
+      "prompt": "Use the supplied blue concept sheet as the design and palette reference. Create ONE isolated game sprite only, no sheet, no other objects from the reference, no text, no labels, no numbers, no border. Genuine transparent background. Match its rounded bright painted 2.5D casual merge-game style, clear rich cobalt blue with sky-blue highlights, honey wood, warm brass, cream and red accents. Three-quarter view slightly from above, soft upper-left light. Large simple shapes readable in a 48-pixel cell, clean silhouette. Entire object centered with 8% empty margin, no cropped parts, minimal contact shadow and no background plane. Subject: the finished red inertia toy car at bottom left, bright red rounded body, cream roof and cream bumper, blue glass, two visible chunky dark wheels, friendly modern toy proportions. Match reference closely. No gift packaging."
+    },
+    {
+      "name": "gift-2",
+      "prompt": "Use the supplied blue concept sheet as the design and palette reference. Create ONE isolated game sprite only, no sheet, no other objects from the reference, no text, no labels, no numbers, no border. Genuine transparent background. Match its rounded bright painted 2.5D casual merge-game style, clear rich cobalt blue with sky-blue highlights, honey wood, warm brass, cream and red accents. Three-quarter view slightly from above, soft upper-left light. Large simple shapes readable in a 48-pixel cell, clean silhouette. Entire object centered with 8% empty margin, no cropped parts, minimal contact shadow and no background plane. Subject: the finished BLUE light-up sporty toy car at bottom center, rich cobalt blue body and spoiler, two cream racing stripes, warmly glowing yellow headlights, blue glass, chunky dark wheels. Match reference closely, no remote control and no gift packaging."
+    },
+    {
+      "name": "gift-3",
+      "prompt": "Use the supplied blue concept sheet as the design and palette reference. Create ONE isolated game sprite only, no sheet, no other objects from the reference, no text, no labels, no numbers, no border. Genuine transparent background. Match its rounded bright painted 2.5D casual merge-game style, clear rich cobalt blue with sky-blue highlights, honey wood, warm brass, cream and red accents. Three-quarter view slightly from above, soft upper-left light. Large simple shapes readable in a 48-pixel cell, clean silhouette. Entire object centered with 8% empty margin, no cropped parts, minimal contact shadow and no background plane. Subject: the finished adorable small walking toy robot at bottom right, cream rounded body and head, cobalt blue ear covers, shoulder joints and head panel, warm brass joints, red feet, short friendly arms, black rounded face screen with two smiling amber eyes and tiny antenna. Match reference closely, no gift packaging."
+    }
+  ]
+}

@@ -163,11 +163,11 @@ test('Offline energy, mail timing and speed switch preserve remaining fractional
   act(f, { type: 'spawn', from: E.at('D1') }); f.advance(10000); act(f, { type: 'speed' });
   assert.equal(f.g.state.speed, 10); assert.equal(m.dueAt - f.g.now(), 1000);
   f.advance(999); assert(!f.g.act({ type: 'claim', mailId: m.id }).ok); f.advance(1); act(f, { type: 'claim', mailId: m.id });
-  const saved = copy(f.g.state); f.advance(100000); const reloaded = new E.Game(saved, f.g.now); assert.equal(reloaded.state.energy, 20);
+  const saved = copy(f.g.state); f.advance(100000); const reloaded = new E.Game(saved, f.g.now); assert.equal(reloaded.state.energy, 40);
 });
 test('Bad saves and old versions are rejected; duplicate claimed rewards or duplicate clear records do not validate', () => {
   const f = fixture(); assert(E.validate(f.g.state));
-  for (const value of [null, {}, { ...copy(f.g.state), version: 7 }, { ...copy(f.g.state), thanks: 1 }, { ...copy(f.g.state), energy: 21 }, { ...copy(f.g.state), bag: [null] }]) assert(!E.validate(value));
+  for (const value of [null, {}, { ...copy(f.g.state), version: 7 }, { ...copy(f.g.state), thanks: 1 }, { ...copy(f.g.state), energy: 41 }, { ...copy(f.g.state), bag: [null] }]) assert(!E.validate(value));
   fulfill(f); const saved = copy(f.g.state); saved.mail.push(copy(saved.mail[0])); assert(!E.validate(saved));
   clearTo(f, E.at('B4')); const bad = copy(f.g.state); bad.cleared.push(copy(bad.cleared[0])); assert(!E.validate(bad));
 });
@@ -213,4 +213,49 @@ test('Finished gifts carry to next workshop in storage and count toward sending'
   const original = f.g.state.letters[0]; original.want = [E.item('tech', 1)]; original.packed = [false];
   act(f, { type: 'next' }); assert.equal(f.g.state.giftStore.length, 1); assert(E.canSend(f.g.state, original.id));
   act(f, { type: 'send', orderId: original.id }); assert.equal(f.g.state.giftStore.length, 0);
+});
+
+test('Finished gifts return the exact recipe for every rank; packing and storage can be dismantled too', () => {
+  for (let level = 1; level <= 8; level++) {
+    const f = fixture(), s = f.g.state;
+    s.board = E.makeBoard(0).map(x => E.isItem(x) ? null : x);
+    s.board[7] = { gift: E.item('tech', level) };
+    act(f, { type: 'return', from: 7 });
+    assert.deepEqual(s.board.filter(E.isItem).map(x => x.level).sort(), [...E.RECIPES[level - 1]].sort());
+    assert(f.g.undo().ok); assert.equal(f.g.state.board[7].gift.level, level);
+  }
+  const f = fixture(), L = f.g.state.letters[0]; pack(f, L);
+  act(f, { type: 'disassemble', orderId: L.id, giftIndex: 0 }); assert.equal(L.packed[0], false); assert(E.canCraft(f.g.state, L.id, 0));
+  f.g.state.giftStore.push(E.item('tech', 2)); act(f, { type: 'disassemble', storeIndex: 0 }); assert.equal(f.g.state.giftStore.length, 0);
+  f.g.state.board[7] = { gift: E.item('tech', 8) };
+  f.g.state.board.forEach((x,i) => { if (x === null) f.g.state.board[i] = E.item('tech', 1); });
+  const before = copy(f.g.state); assert(!f.g.act({ type: 'disassemble', cell: 7 }).ok); assert.deepEqual(f.g.state, before);
+});
+
+test('Reply snowflake is persisted at send, delivered once, conserved at cap, and uses a 20 percent boundary', () => {
+  for (const [roll, bonus] of [[.199999, 1], [.2, 0], [.5, 0]]) {
+    const f = fixture(roll), L = f.g.state.letters[0]; pack(f, L);
+    act(f, { type: 'send', orderId: L.id }); const m = f.g.state.mail.at(-1); assert.equal(m.bonusEnergy, bonus);
+    assert.equal(new E.Game(copy(f.g.state), f.g.now).state.mail.at(-1).bonusEnergy, bonus);
+    f.advance(E.MAIL_MS); f.g.state.energy = E.MAX_ENERGY;
+    act(f, { type: 'claim', mailId: m.id }); assert.equal(f.g.state.energy, 40);
+    assert.equal(f.g.state.bag.filter(t => t.name === 'Снежинка из письма').length, bonus);
+    assert(!f.g.act({ type: 'claim', mailId: m.id }).ok);
+  }
+  const f = fixture(.1); const m = fulfill(f, undefined, false); f.advance(E.MAIL_MS); act(f, { type: 'spawn', from: E.at('D1') }); const before = f.g.state.energy;
+  act(f, { type: 'claim', mailId: m.id }); assert.equal(f.g.state.energy, before + 1);
+});
+
+test('v9 progress migrates with the increased energy allowance only once and old replies get no rerolled reward', () => {
+  const f = fixture(); fulfill(f); const old = copy(f.g.state); old.version = 9; old.energy = 5; old.mail.forEach(m => delete m.bonusEnergy);
+  const migrated = E.migrate(old); assert.equal(migrated.energy, 25); assert.equal(migrated.mail[0].bonusEnergy, 0);
+  assert.deepEqual(E.migrate(migrated), migrated); assert.equal(old.energy, 5);
+  assert.equal(E.migrate({version:9}), null);
+});
+
+test('Existing v10 save gains ten energy once and keeps pending reply bonuses intact', () => {
+  const f = fixture(.1); fulfill(f, undefined, false);
+  const old = copy(f.g.state); old.version = 10; old.energy = 7;
+  const converted = E.migrate(old); assert.equal(converted.energy, 17); assert.equal(converted.mail[0].bonusEnergy, 1);
+  assert.deepEqual(E.migrate(converted), converted); assert.equal(old.energy, 7);
 });

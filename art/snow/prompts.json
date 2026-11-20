@@ -1,0 +1,17 @@
+{
+  "tool": "built-in ImageGen",
+  "sprites": [
+    {
+      "name": "loose",
+      "prompt": "Use case: stylized-concept. Asset type: ONE isolated terrain obstacle sprite for a cozy Father Frost merge game, matching bright rounded painted 2.5D casual game objects. Genuine transparent background. No text, numbers, icons, gifts, tools, borders or decorative background. A roughly square snow-covered patch that fits one square cell, viewed mostly from above with only a modest visible front thickness, no isometric diamond. Large clean readable silhouette with gently rounded corners, occupies 85% of a square canvas, centered with padding. Soft upper-left light, snowy cream-white highlights with clean sky-blue shaded edges; clearly readable at 48 pixels. Do not include floating glows around it or heavy ground shadows. Subject: LOOSE FRESH SNOW: a shallow soft fluffy mound, low rounded cloudlike lobes, powdery white top, only a little pale blue shading. Very soft, airy, inviting. No hard edges, no crystals, no deep cracks. A low smooth 3-lobed silhouette."
+    },
+    {
+      "name": "packed",
+      "prompt": "Use case: stylized-concept. Asset type: ONE isolated terrain obstacle sprite for a cozy Father Frost merge game, matching bright rounded painted 2.5D casual game objects. Genuine transparent background. No text, numbers, icons, gifts, tools, borders or decorative background. A roughly square snow-covered patch that fits one square cell, viewed mostly from above with only a modest visible front thickness, no isometric diamond. Large clean readable silhouette with gently rounded corners, occupies 85% of a square canvas, centered with padding. Soft upper-left light, snowy cream-white highlights with clean sky-blue shaded edges; clearly readable at 48 pixels. Do not include floating glows around it or heavy ground shadows. Subject: PACKED SNOW: a noticeably thick compact square-ish mound, round corners, layered compressed snowy side, firm flattened off-white top, a broad blue-gray shallow indentation and two simple broad compression ridges along the front. Clearly denser and taller than fresh powder, matte opaque snow, NOT transparent ice, no crystal shards."
+    },
+    {
+      "name": "ice",
+      "prompt": "Use case: stylized-concept. Asset type: ONE isolated terrain obstacle sprite for a cozy Father Frost merge game, matching bright rounded painted 2.5D casual game objects. Genuine transparent background. No text, numbers, icons, gifts, tools, borders or decorative background. A roughly square snow-covered patch that fits one square cell, viewed mostly from above with only a modest visible front thickness, no isometric diamond. Large clean readable silhouette with gently rounded corners, occupies 85% of a square canvas, centered with padding. Soft upper-left light, snowy cream-white highlights with clean sky-blue shaded edges; clearly readable at 48 pixels. Do not include floating glows around it or heavy ground shadows. Subject: SOLID ICE: a thick compact translucent sky-blue ice block with rounded square footprint, broad angular icy facets, ONE large branching frosty crack visible on its upper face, a few opaque white frost patches at the edges and a bright clean edge highlight. Saturated icy blue side, distinguishable hard glassy surface, squat not a tall crystal or spiky mountain. No snowflake symbol."
+    }
+  ]
+}
