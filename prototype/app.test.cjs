@@ -46,7 +46,7 @@ function session(storage = new Map()) {
     const tag = m[2].toLowerCase();
     if (m[1]) { while (stack.length > 1 && stack.at(-1).tagName !== tag) stack.pop(); if (stack.length > 1) stack.pop(); continue; }
     const el = doc.createElement(tag), id = m[3].match(/\bid="([^"]+)"/), cls = m[3].match(/\bclass="([^"]+)"/);
-    if (id) { el.id = id[1]; doc.byId[el.id] = el; } if (cls) el.className = cls[1];
+    if (id) { el.id = id[1]; assert(!doc.byId[el.id], 'Duplicate HTML id: ' + el.id); doc.byId[el.id] = el; } if (cls) el.className = cls[1];
     el.hidden = /\bhidden\b/.test(m[3]); el.open = /\bopen\b/.test(m[3]); el.disabled = /\bdisabled\b/.test(m[3]);
     stack.at(-1).append(el); if (!['meta', 'link', 'img', 'br', 'hr', 'input'].includes(tag)) stack.push(el);
     if (tag === 'body') doc.body = el;
@@ -82,14 +82,18 @@ test('UI reload reads its own save, catalog has eight tiers, and errors in stora
   const broken = new Map([['pochta-workshops-v12', '{broken json']]); const recovered = session(broken); assert.match(recovered.doc.getElementById('tip').textContent, /Хранилище/); assert.equal(recovered.state().version, 12);
 });
 
-test('Board gestures assemble a gift and change the letter action to Send without opening recipe', () => {
+test('Board crafting marks the envelope ready; opening the full letter sends the gift once', () => {
   const s = session(), $ = id => s.doc.getElementById(id);
   const clickCell = i => $('board').events.click[0]({ target: $('board').children[i] });
   clickCell(23); // C4: component level 2.
   clickCell(16); // C3: component level 1 => first gift.
   assert.equal(s.state().board[16].gift.level, 1);
-  const send = $('letters').children[0].querySelector('button'); assert.equal(send.textContent, 'Отправить');
-  assert.equal($('recipe-dialog').open, false); send.click(); assert.equal(s.state().board[16], null); assert.equal(s.state().mail.length, 1);
+  const open = $('letters').children[0].querySelector('button'); assert.match(open.textContent, /Отправить/);
+  assert.match(open.attrs['aria-label'], /Подарки готовы/);
+  assert.equal($('recipe-dialog').open, false); open.click();
+  assert($('recipe-dialog').open); assert(s.state().board[16]?.gift); assert.equal(s.state().mail.length, 0);
+  assert.match($('recipe-story').textContent, /«.+»/); assert(!$('recipe-send').disabled);
+  $('recipe-send').click(); assert.equal(s.state().board[16], null); assert.equal(s.state().mail.length, 1);
 });
 test('An existing v8 save migrates automatically and stays untouched', () => {
   const first = session(), old = first.state(); old.version = 8; delete old.giftStore;
@@ -121,13 +125,76 @@ test('Blue sprites stay consistent across board, letter and recipe, with a reada
   assert.equal(s.state().version, 12); // Current save schema.
 });
 
-test('Three-cell production bench creates a part with a single click without losing usable board space', () => {
+test('Single toolbox creates a part with a single click without losing usable board space', () => {
   const s = session(), $ = id => s.doc.getElementById(id);
-  const station = $('generators').children[0]; assert.match(station.attrs['aria-label'], /три клетки/);
+  assert.equal($('generators').children.length, 1); assert($('production-choice').hidden); const station = $('generators').children[0]; assert.match(station.attrs['aria-label'], /Ящик/);
   const before = s.state(), empty = before.board.filter(x => x === null).length;
-  station.click(); const after = s.state(); assert.equal(after.energy, before.energy - 1);
+  station.focus(); station.click(); const after = s.state(); assert.equal(after.energy, before.energy - 1);
+  assert.equal(s.doc.activeElement, $('generators').children[0]);
   assert.equal(after.board.filter(x => x === null).length, empty - 1);
   assert.equal(after.board.filter(x => x?.gen).length, 1);
+});
+
+test('Illustrated scene keeps live controls accessible and opens a full letter without spending resources', () => {
+  const s = session(), $ = id => s.doc.getElementById(id);
+  const scene = $('room-scene');
+  assert.equal($('board').parentElement, scene); assert.equal($('letters').parentElement, scene);
+  assert.equal($('generators').closest('#room-scene'), scene);
+  assert.notEqual(scene.attrs['aria-hidden'], 'true');
+  assert(scene.querySelector('.scene-background'));
+  assert.equal($('letters').querySelectorAll('button').length, 3);
+  const before = s.state(); $('letters').children[1].querySelector('button').click();
+  assert($('recipe-dialog').open); assert.match($('recipe-story').textContent, /«.+»/);
+  assert.equal(s.state().energy, before.energy); assert.equal(s.state().mail.length, before.mail.length);
+  $('recipe-close').click(); assert(!$('recipe-dialog').open);
+});
+
+test('Room restoration survives reload and workshop transitions, and undo removes a new improvement', () => {
+  const E = require('./engine.js'), g = new E.Game(undefined, () => 1000000, () => .5);
+  // Valid history of successful deliveries funds clearance; production is covered by engine tests.
+  for (let n = 0; n < 400; n++) {
+    const order = JSON.parse(JSON.stringify(g.state.letters[0])); order.id = g.state.nextId++;
+    g.state.mail.push({ id: g.state.nextMailId++, order, shift: 0, attempt: 1, outcome: 'success', claimed: true, bonusEnergy: 0, dueAt: 1000000 });
+  }
+  g.state.thanks = 400;
+  assert(E.validate(g.state));
+  const load = () => session(new Map([['pochta-workshops-v12', JSON.stringify(g.state)]]));
+  const clearOne = () => {
+    const cell = g.state.board.findIndex((x, i) => x?.snow && E.accessible(g.state, i));
+    assert(cell >= 0); assert(g.act({ type: 'melt', cell }).ok); return cell;
+  };
+  assert.match(load().doc.getElementById('room-state').textContent, /Холодное окно/);
+  for (let n = 0; n < 5; n++) clearOne();
+  const s = load(), $ = id => s.doc.getElementById(id);
+  assert(!$('room-scene').className.includes('window-fixed'));
+  const sixth = g.state.board.findIndex((x, i) => x?.snow && E.accessible(g.state, i));
+  $('board').events.click[0]({ target: $('board').children[sixth] }); $('melt').click();
+  assert($('room-scene').className.includes('window-fixed'));
+  assert(session(s.storage).doc.getElementById('room-scene').className.includes('window-fixed'));
+  $('undo').click(); assert(!$('room-scene').className.includes('window-fixed'));
+  assert.equal(s.state().cleared.length, 5);
+  while (g.state.cleared.length < 12) clearOne();
+  const warm = load(); assert(warm.doc.getElementById('room-scene').className.includes('stove-warm'));
+  assert.match(warm.doc.getElementById('room-progress').textContent, /2 \/ 5/);
+  for (let shift = 0; shift < 3; shift++) {
+    while (g.state.board.some(x => x?.snow)) clearOne();
+    assert(g.act({ type: 'build' }).ok); assert(E.validate(g.state));
+    const restored = load();
+    assert(restored.doc.getElementById('room-shelf-items').querySelector('img'));
+    assert.equal(restored.doc.getElementById('room-placed-decor').children.length, 4);
+    assert.match(restored.doc.getElementById('room-progress').textContent, new RegExp((shift + 3) + ' / 5'));
+    if (shift < 2) {
+      assert(g.act({ type: 'next' }).ok); assert(E.validate(g.state));
+      const switched = load(), get = id => switched.doc.getElementById(id);
+      assert.equal(get('generators').children.length, 1); assert(!get('production-choice').hidden);
+      const chain = Object.values(E.SHIFTS[g.state.shift].generators).at(-1), before = switched.state();
+      get('production-select').value = chain; get('production-select').events.change[0]();
+      assert.equal(get('generators').children.length, 1); get('generators').children[0].click();
+      assert.equal(switched.state().energy, before.energy - 1);
+      assert.equal(switched.state().board.filter(x => x?.chain === chain).length, before.board.filter(x => x?.chain === chain).length + 1);
+    }
+  }
+  assert(load().doc.getElementById('room-scene').className.includes('post-restored'));
 });
 
 test('Snow artwork distinguishes all three costs and clearance reveals one find without changing rewards', () => {

@@ -1,0 +1,33 @@
+Почта Деда Мороза · интерьер · 21 ноября 2026
+
+ПРОМПТ 1. Новая генерация без референса
+Формат: вертикальный 2:3. Вставить текст ниже целиком.
+
+Create one beautiful portrait 2:3 illustrated background for a cozy Russian fairy-tale merge game: the INTERIOR of Ded Moroz's wooden terem post office, half buried in snow. Not an exterior, not a dollhouse cutaway, not a schematic interface.
+
+Bright hand-painted 2.5D casual game art, rounded sculpted shapes, clean silhouettes, honey-colored timber, cream snow, cool blue frost, small cobalt and cranberry accents, warm brass lamplight. Charming and readable on a phone. No photorealism or realistic industrial rendering.
+
+A huge empty wooden sorting table dominates the lower center, leaving a broad calm surface for a 7-column by 8-row game board. Show the tabletop nearly from above with minimal perspective, parallel side edges. NO painted grid, cells, items, buttons or text on the table. Keep characters and scenery outside the playable surface.
+
+Around it: thick log walls, carved Russian timber arches, two arched windows with heavy fern-pattern frost, blue snowy evening outside. An old cream tiled stove on the left, empty slightly crooked shelves, tied brown paper parcels, pigeonholes with letters, a postal sack. An open carved door on the right admits snow. Substantial snowdrifts hug the floor, window sills, door and outside edges of the table. The room is neglected, cold and repairable, not ruined. One hanging brass lamp gives a small warm pool of hope. Three blank envelopes hang on clothespins above the table.
+
+On the left, friendly young adult Snegurochka in a modest long pale ice-blue fur-trimmed coat, Russian kokoshnik and long light braid, holding letters. On the right by the door, a friendly snowman postman in a red knitted cap and mittens, turquoise scarf and postal satchel. Keep both to the sides, never overlapping the table's playable surface.
+
+The image must instantly communicate a snowbound magical Russian post office without explanation. One cohesive scene. No words, numbers, UI, logos, watermarks, Santa Claus, elves, modern industrial room, or excessive festive decorations.
+
+ПРОМПТ 2. Менее нарядное начальное состояние и более прямой стол
+Приложить workshop-interior-v2-concept.png как референс.
+
+Use the attached workshop-interior-v2-concept.png as the composition and style reference. Create a new variant of the SAME snowbound Russian postal workshop. Keep the camera, room architecture, warm painted 2.5D art, two frosted windows, the hanging lamp, Snegurochka with letters on the left and the snowman postman at the right door.
+
+Change only these two aspects:
+1. Make the INITIAL unrepaired state clearer: darker unpolished timber, one slightly crooked shutter, a few empty crooked shelves, more windblown snow near the doorway and stove, an unlit stove, faded restrained decorative paint. Lovable and hopeful, not frightening or destroyed. Keep the lamp as the only strong warm light.
+2. Make the central wooden tabletop a large near-front-facing rectangular playable surface: almost parallel left/right edges, only minimal foreshortening, plenty of uninterrupted empty space for a 7-column by 8-row grid added later. No drawn cells or objects on the table. Characters, snow and scenery stay outside that clear surface.
+
+Do not redesign the characters or introduce text, UI, logos, extra people or new major props.
+
+ПРОМПТ 3. Чистый фон для будущей сборки игры
+Приложить выбранный вариант комнаты. Не путать с первым цельным концептом: здесь намеренно убраны персонажи и письма, чтобы затем подключать их отдельными слоями.
+
+Use the attached workshop-interior-v2-concept.png as the exact composition, palette and lighting reference. Make a CLEAN BACKGROUND PLATE for the same illustrated game room. Remove Snegurochka, the snowman and the three hanging envelopes only; reconstruct the room naturally behind them. Preserve the door, windows, lamp, stove, snowdrifts and the large empty table, with the same camera and framing. No replacement characters, no UI, no text, no grid. This is a complete opaque room background, NOT a transparent cutout. The removed characters and interactive letters will be separate layers in the game.
+
