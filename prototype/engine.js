@@ -3,7 +3,7 @@
   'use strict';
   const C = typeof module !== 'undefined' && module.exports ? require('./content.js') : root.PostContent;
   const { CHAINS, RECIPES, SNOW, SHIFTS, CACHES, at, coord, makeBoard, item } = C;
-  const VERSION = 12, MAX_ENERGY = 40, REGEN_MS = 30000, MAIL_MS = 20000;
+  const VERSION = 20, MAX_ENERGY = 40, REGEN_MS = 30000, MAIL_MS = 20000;
   const clone = x => JSON.parse(JSON.stringify(x));
   const key = x => x.chain + ':' + x.level;
   const isItem = x => !!x && Object.hasOwn(CHAINS, x.chain) && Number.isInteger(x.level) && x.level >= 1 && x.level <= 8;
@@ -77,6 +77,8 @@
     });
   }
   function rates(s) { return { lost: .2, damaged: s.built.includes(2) ? .05 : .1 }; }
+  const giftThanks = gift => Math.max(1, gift.level - 4);
+  const orderThanks = order => order.want.reduce((sum, gift) => sum + giftThanks(gift), 0);
   function newLetter(s, side = false) {
     const chains = Object.values(SHIFTS[s.shift].generators);
     const sequence = s.issued++;
@@ -84,7 +86,7 @@
     const chain = chains[(sequence + chains.length - 1) % chains.length];
     const issued = s.chainIssued[chain]++;
     const rank = Math.min(8, 2 + Math.floor(issued / 6));
-    const level = issued === 0 ? 1 : issued % 3 === 1 ? rank : Math.max(1, rank - 1);
+    const level = issued === 0 ? 1 : issued % 4 === 0 ? 1 + (Math.floor(issued / 4) % 2) : issued % 3 === 1 ? rank : Math.max(1, rank - 1);
     s.unlocked[chain] = Math.max(s.unlocked[chain], level);
     const names = ['Миша', 'Аня', 'Тимофей', 'Вера', 'Соня', 'Лёва', 'Маша', 'Егор', 'Лиза', 'Тимур'];
     const who = names[(s.nextId - 1) % names.length], want = [item(chain, level)];
@@ -114,6 +116,7 @@
       const ids = new Set();
       for (const m of s.mail) {
         if (!m || !Number.isInteger(m.id) || m.id <= 0 || m.id >= s.nextMailId || ids.has(m.id) || !validOrder(m.order) || !Number.isInteger(m.shift) || m.shift < 0 || m.shift > s.shift || ![1, 2].includes(m.attempt) || !['success', 'lost', 'damaged'].includes(m.outcome) || typeof m.claimed !== 'boolean' || !Number.isFinite(m.dueAt) || m.dueAt < 0) return false;
+        if (!Number.isInteger(m.rewardThanks) || m.rewardThanks < 1 || m.rewardThanks > 8 || (m.rewardThanks !== orderThanks(m.order) && !(m.claimed && m.rewardThanks === 1))) return false;
         if (![0, 1].includes(m.bonusEnergy) || (m.outcome !== 'success' && m.bonusEnergy !== 0)) return false;
         if (m.attempt === 2 && (m.outcome !== 'success' || !s.mail.some(p => p.order.id === m.order.id && p.attempt === 1 && p.outcome === 'lost' && p.claimed))) return false;
         if (s.mail.some(p => p !== m && p.order.id === m.order.id && p.attempt === m.attempt)) return false;
@@ -126,7 +129,7 @@
         clearedIds.add(c.shift + ':' + c.cell); spent += SNOW[x.snow].cost;
       }
       const successes = s.mail.filter(m => m.claimed && m.outcome === 'success');
-      if (new Set(successes.map(m => m.order.id)).size !== successes.length || s.thanks !== successes.length - spent) return false;
+      if (new Set(successes.map(m => m.order.id)).size !== successes.length || s.thanks !== successes.reduce((sum, m) => sum + m.rewardThanks, 0) - spent) return false;
       const initial = makeBoard(s.shift);
       for (let i = 0; i < 63; i++) {
         const x = s.board[i];
@@ -152,10 +155,11 @@
     } catch (_) { return false; }
   }
   function migrate(saved) {
-    if ([8, 9, 10].includes(saved?.version)) {
+    if ([8, 9, 10, 12].includes(saved?.version)) {
       if (!Array.isArray(saved.mail) || !Number.isInteger(saved.energy)) return null;
-      const candidate = { ...clone(saved), version: VERSION, giftStore: saved.giftStore || [], energy: Math.min(MAX_ENERGY, saved.energy + (saved.version === 10 ? 10 : 20)) };
-      if (candidate.mail.some(m => !m)) return null;
+      const candidate = { ...clone(saved), version: VERSION, giftStore: saved.giftStore || [], energy: Math.min(MAX_ENERGY, saved.energy + (saved.version === 12 ? 0 : saved.version === 10 ? 10 : 20)) };
+      if (candidate.mail.some(m => !m || !Array.isArray(m.order?.want) || !m.order.want.every(isItem))) return null;
+      candidate.mail.forEach(m => { m.rewardThanks = m.claimed ? 1 : orderThanks(m.order); });
       if (saved.version < 10) candidate.mail.forEach(m => { m.bonusEnergy = 0; });
       return validate(candidate) ? candidate : null;
     }
@@ -259,7 +263,7 @@
         const chance = rates(s), roll = L.retry || L.protected ? 0 : this.roll();
         const success = Math.round((1 - chance.lost - chance.damaged) * 100) / 100;
         const outcome = roll < success ? 'success' : roll < success + chance.lost ? 'lost' : 'damaged';
-        s.mail.push({ id: s.nextMailId++, order: clone(L), attempt: L.retry ? 2 : 1, outcome, bonusEnergy: outcome === 'success' && this.roll() < .2 ? 1 : 0, dueAt: this.now() + MAIL_MS / s.speed, claimed: false, shift: s.shift });
+        s.mail.push({ id: s.nextMailId++, order: clone(L), attempt: L.retry ? 2 : 1, rewardThanks: orderThanks(L), outcome, bonusEnergy: outcome === 'success' && this.roll() < .2 ? 1 : 0, dueAt: this.now() + MAIL_MS / s.speed, claimed: false, shift: s.shift });
         const normal = s.letters.findIndex(x => x.id === L.id);
         if (normal >= 0) s.letters[normal] = newLetter(s); else s.extra.splice(s.extra.findIndex(x => x.id === L.id), 1);
         s.moves++;
@@ -270,12 +274,12 @@
         if (!m || m.claimed || m.dueAt > this.now()) return fail('Ответ пока не пришёл или уже открыт.');
         this.remember(); m.claimed = true;
         if (m.outcome === 'success') {
-          s.thanks++; const overflow = m.bonusEnergy && s.energy === MAX_ENERGY;
+          s.thanks += m.rewardThanks; const overflow = m.bonusEnergy && s.energy === MAX_ENERGY;
           if (m.bonusEnergy) {
             if (s.energy < MAX_ENERGY) { s.energy++; if (s.energy === MAX_ENERGY) s.energyAt = this.now(); }
             else s.bag.push({ id: s.nextToolId++, kind: 'energy', name: 'Снежинка из письма', amount: 1 });
           }
-          return ok('Ответ: «Спасибо за подарок!» +1 ♡.' + (m.bonusEnergy ? ' +1 ❄' + (overflow ? ' · сохранена в находках.' : '') : ''));
+          return ok('Ответ: «Спасибо за подарок!» +' + m.rewardThanks + ' ♡.' + (m.bonusEnergy ? ' +1 ❄' + (overflow ? ' · сохранена в находках.' : '') : ''));
         }
         if (m.outcome === 'damaged') return ok('Подарок повредился в дороге. За эту посылку нет сердечка. Новые письма продолжают приходить.');
         const retry = clone(m.order); retry.retry = true; retry.protected = false; retry.packed = retry.want.map(() => false);
@@ -337,6 +341,6 @@
       return ok(y ? 'Поменяли запчасти местами.' : 'Переместили запчасть.', to);
     }
   }
-  const api = { ...C, VERSION, MAX_ENERGY, REGEN_MS, MAIL_MS, Game, fresh, validate, migrate, isItem, isGift, isAssembly, isMovable, cellName, combine, countGifts, label, giftName, key, recipe, count, canCraft, canSend, findOrder, orderList, neighbors, accessible, parts, complete, cacheAt, isCleared, rates };
+  const api = { ...C, VERSION, MAX_ENERGY, REGEN_MS, MAIL_MS, Game, fresh, validate, migrate, isItem, isGift, isAssembly, isMovable, cellName, combine, countGifts, giftThanks, orderThanks, label, giftName, key, recipe, count, canCraft, canSend, findOrder, orderList, neighbors, accessible, parts, complete, cacheAt, isCleared, rates };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.PostGame = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

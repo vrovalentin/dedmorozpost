@@ -1,13 +1,13 @@
 (function () {
   'use strict';
-  const E = window.PostGame, $ = id => document.getElementById(id), KEY = 'pochta-workshops-v12';
+  const E = window.PostGame, $ = id => document.getElementById(id), KEY = 'pochta-workshops-v20';
   let saved, loadMessage = '', storageFailed = false;
   try {
-    const raw = localStorage.getItem(KEY), old = raw ? null : localStorage.getItem('pochta-workshops-v10') || localStorage.getItem('pochta-workshops-v9') || localStorage.getItem('pochta-workshops-v8');
+    const raw = localStorage.getItem(KEY), old = raw ? null : localStorage.getItem('pochta-workshops-v12') || localStorage.getItem('pochta-workshops-v10') || localStorage.getItem('pochta-workshops-v9') || localStorage.getItem('pochta-workshops-v8');
     if (raw || old) {
       const parsed = JSON.parse(raw || old); saved = E.migrate(parsed);
       if (!saved) { saved = undefined; loadMessage = 'Сохранение не удалось прочитать. Начинаем заново.'; }
-      else if (old) loadMessage = 'Прогресс перенесён: максимальный запас теперь 40 снежинок. Добавили разницу к прежнему запасу.';
+      else if (old) loadMessage = 'Прогресс перенесён. За подарки уровней 6 / 7 / 8 теперь придёт 2 / 3 / 4 спасибо.';
     }
   }
   catch (_) { loadMessage = 'Хранилище недоступно: прогресс может не сохраниться.'; }
@@ -16,12 +16,32 @@
   const node = (tag, cls, text) => { const x = document.createElement(tag); if (cls) x.className = cls; if (text !== undefined) x.textContent = text; return x; };
   const ART = {
     generator: '../art/tech/sprites/generator.webp',
+    'part-4': '../art/tech/sprites/part-4.webp',
+    'part-5': '../art/tech/sprites/part-5.webp',
+    'part-6': '../art/tech/sprites/part-6.webp',
+    'part-7': '../art/tech/sprites/part-7.webp',
+    'part-8': '../art/tech/sprites/part-8.webp',
+    'gift-4': '../art/tech/sprites/gift-4.webp',
+    'gift-5': '../art/tech/sprites/gift-5.webp',
+    'gift-6': '../art/tech/sprites/gift-6.webp',
+    'gift-7': '../art/tech/sprites/gift-7.webp',
+    'gift-8': '../art/tech/sprites/gift-8.webp',
     'part-1': '../art/tech/sprites/part-1.webp',
     'part-2': '../art/tech/sprites/part-2.webp',
     'part-3': '../art/tech/sprites/part-3.webp',
     'gift-1': '../art/tech/sprites/gift-1.webp',
     'gift-2': '../art/tech/sprites/gift-2.webp',
     'gift-3': '../art/tech/sprites/gift-3.webp'
+  };
+  const SEW_ART = {
+    'generator': '../art/sewing/sprites/generator.webp',
+    'part-1': '../art/sewing/sprites/part-1.webp',
+    'part-2': '../art/sewing/sprites/part-2.webp',
+    'part-3': '../art/sewing/sprites/part-3.webp',
+    'gift-1': '../art/sewing/sprites/gift-1.webp',
+    'gift-2': '../art/sewing/sprites/gift-2.webp',
+    'gift-3': '../art/sewing/sprites/gift-3.webp',
+    'gift-4': '../art/sewing/sprites/gift-4.webp'
   };
   const SNOW_ART = {
     1: '../art/snow/loose.webp',
@@ -48,7 +68,8 @@
   }
   function spriteIcon(kind, chain, level, fallback) {
     const wrap = node('span', 'game-icon');
-    const src = chain === 'tech' ? ART[kind === 'generator' ? kind : kind + '-' + level] : null;
+    const assets = chain === 'tech' ? ART : chain === 'sew' ? SEW_ART : {};
+    const src = assets[kind === 'generator' ? kind : kind + '-' + level];
     if (!src) { wrap.textContent = fallback; return wrap; }
     wrap.classList.add('has-art');
     const img = node('img', 'item-art'); img.src = src; img.alt = ''; img.width = 128; img.height = 128;
@@ -95,7 +116,7 @@
       open.append(node('span', 'envelope-sender', L.who.split(',')[0]));
       const gifts = node('span', 'envelope-gifts');
       L.want.forEach(g => gifts.append(spriteIcon('gift', g.chain, g.level, E.CHAINS[g.chain].icons[g.level - 1])));
-      open.append(gifts, node('span', 'envelope-status', ready ? '✓ Отправить' : 'Прочитать'));
+      open.append(gifts, node('span', 'envelope-status', (ready ? '✓ Отправить' : 'Прочитать') + ' · ' + E.orderThanks(L) + ' ♡'));
       card.append(open); return card;
     }
     const card = node('article', 'letter' + (L.retry ? ' retry' : ''));
@@ -107,7 +128,7 @@
       if (onTable) availableGifts[E.key(g)]--;
       const text = giftLabel('p', L.packed[n] || onTable ? 'packed-label' : '', g, (L.packed[n] || onTable ? '✓ ' : '') + E.giftName(g)); wants.append(text);
     });
-    card.append(wants);
+    card.append(wants, node('small', 'letter-reward', E.orderThanks(L) + ' ♡ с успешным ответом'));
     const ready = E.canSend(game.state, L.id), craftable = L.want.some((_, n) => E.canCraft(game.state, L.id, n));
     const b = button(ready ? 'Отправить' : craftable ? 'Собрать подарок' : 'Рецепт', () => ready ? execute({ type: 'send', orderId: L.id }) : showRecipe(L.id), ready || craftable ? 'ready' : '');
     b.dataset.order = L.id; card.append(b);
@@ -163,7 +184,7 @@
     $('room-next').textContent = milestones.find(([done]) => !done)?.[2] || 'На почте тепло и всё готово к новым письмам.';
     const shelf = document.createDocumentFragment();
     if (built >= 1) {
-      shelf.append(spriteIcon('gift', 'tech', 1, '🚗'), node('span', 'shelf-thread', '🧵'), node('span', 'shelf-basket', '🧺'));
+      shelf.append(spriteIcon('gift', 'tech', 1, '🚗'), spriteIcon('generator', 'sew', 1, '🧵'), node('span', 'shelf-basket', '🧺'));
     }
     $('room-shelf-items').replaceChildren(shelf);
     const decorations = document.createDocumentFragment();
@@ -302,11 +323,12 @@
   function renderCatalog() {
     const s = game.state, catalog = document.createDocumentFragment();
     Object.values(E.SHIFTS[s.shift].generators).forEach(c => {
-      const section = node('details', 'catalog-workshop'); section.append(node('summary', '', E.CHAINS[c].generator + ' ' + E.CHAINS[c].name + ' · заказы до ур. ' + s.unlocked[c]));
+      const section = node('details', 'catalog-workshop');
+      const title = node('summary', '', E.CHAINS[c].name + ' · заказы до ур. ' + s.unlocked[c]); title.prepend(spriteIcon('generator', c, 1, E.CHAINS[c].generator)); section.append(title);
       const p = node('p', '', s.unlocked[c] >= 5 ? 'Выдача: 80% уровня 1, 20% уровня ' + (s.unlocked[c] - 3) + '.' : 'Выдача: уровень 1. С заказами уровня 5 появится улучшенная выдача.'); section.append(p);
       E.CHAINS[c].names.forEach((name, i) => { const row = node('div', 'catalog-part'); row.append(partChip({ chain: c, level: i + 1 }), node('span', '', name)); section.append(row); });
       section.append(node('h3', '', 'Подарки и рецепты'));
-      E.CHAINS[c].gifts.forEach((name, i) => { const row = node('div', 'catalog-gift'); row.append(giftLabel('b', '', {chain:c, level:i+1}, 'Ур. ' + (i + 1) + ' · ' + name), node('p', '', E.RECIPES[i].map(l => ({ tech: 'Т', sew: 'Ш', art: 'Х' }[c]) + l).join(' + '))); section.append(row); });
+      E.CHAINS[c].gifts.forEach((name, i) => { const row = node('div', 'catalog-gift'); row.append(giftLabel('b', '', {chain:c, level:i+1}, 'Ур. ' + (i + 1) + ' · ' + name), node('p', '', E.giftThanks({ level: i + 1 }) + ' ♡ за доставку · ' + E.RECIPES[i].map(l => ({ tech: 'Т', sew: 'Ш', art: 'Х' }[c]) + l).join(' + '))); section.append(row); });
       catalog.append(section);
     }); $('catalog').replaceChildren(catalog);
   }
@@ -314,11 +336,11 @@
   function renderRecipe() {
     const s = game.state, L = E.findOrder(s, currentOrder);
     if (!L) { if ($('recipe-dialog').open) $('recipe-dialog').close(); return; }
-    $('recipe-title').textContent = L.who + (L.retry ? ' · повторная посылка' : ' · подарок'); $('recipe-story').textContent = '«' + L.text + '»';
+    $('recipe-title').textContent = L.who + (L.retry ? ' · повторная посылка' : ' · подарок'); $('recipe-story').textContent = '«' + L.text + '» · За успешный ответ: ' + E.orderThanks(L) + ' ♡.';
     const items = document.createDocumentFragment();
     const availableGifts = E.countGifts(s);
     L.want.forEach((g, i) => {
-      const box = node('section', 'gift-recipe'); box.append(giftLabel('h3', '', g, E.giftName(g) + ' · ур. ' + g.level));
+      const box = node('section', 'gift-recipe'); box.append(giftLabel('h3', '', g, E.giftName(g) + ' · ур. ' + g.level + ' · ' + E.giftThanks(g) + ' ♡'));
       const readyGift = !L.packed[i] && (availableGifts[E.key(g)] || 0) > 0;
       if (readyGift) availableGifts[E.key(g)]--;
       if (L.packed[i] || readyGift) {
@@ -344,7 +366,7 @@
     currentMail = id;
     $('reply-title').textContent = m.outcome === 'success' ? 'Ответ от ' + m.order.who : 'Извещение о посылке · ' + m.order.who;
     $('reply-text').textContent = m.outcome === 'success' ? '«Подарок приехал! Спасибо, Дедушка! Мы уже придумали, как будем с ним играть. А это я нарисовал вашу почту». ' + (m.attempt === 2 ? 'Повторная посылка дошла.' : '') : m.outcome === 'lost' ? 'Снеговик: «Посылка затерялась в дороге. Мне очень жаль. Давай соберём её ещё раз — повторную точно доставим». Сердечко придёт после повторной доставки.' : 'Снеговик: «Подарок повредился по дороге. За эту доставку нет сердечка. Надёжная упаковка поможет избежать такого в будущем». Письмо закроется, можно продолжать новые заказы.';
-    $('reply-drawing').hidden = m.outcome !== 'success'; $('reply-claim').textContent = m.outcome === 'success' ? 'Забрать спасибо · +1 ♡' + (m.bonusEnergy ? ' и 1 ❄' : '') : m.outcome === 'lost' ? 'Получить повторный заказ' : 'Прочитано · без сердечка';
+    $('reply-drawing').hidden = m.outcome !== 'success'; $('reply-claim').textContent = m.outcome === 'success' ? 'Забрать спасибо · +' + m.rewardThanks + ' ♡' + (m.bonusEnergy ? ' и 1 ❄' : '') : m.outcome === 'lost' ? 'Получить повторный заказ' : 'Прочитано · без сердечка';
     if (!$('reply-dialog').open) $('reply-dialog').showModal();
   }
   function showAlbum() {
@@ -356,7 +378,7 @@
     if (!s.mail.length) body.append(node('p', '', 'Первой посылке ещё предстоит отправиться в путь.'));
     [...s.mail].reverse().forEach(m => {
       const row = node('article', 'album-entry'); row.append(node('b', '', m.order.who + (m.attempt === 2 ? ' · повторная' : '')), node('p', '', m.order.want.map(E.giftName).join(' + ')));
-      if (m.claimed) row.append(node('p', '', m.outcome === 'success' ? '✓ Ответ получен · +1 ♡' : m.outcome === 'lost' ? 'Посылка потерялась · добавлен повторный заказ' : 'Повреждено · без сердечка'));
+      if (m.claimed) row.append(node('p', '', m.outcome === 'success' ? '✓ Ответ получен · +' + m.rewardThanks + ' ♡' : m.outcome === 'lost' ? 'Посылка потерялась · добавлен повторный заказ' : 'Повреждено · без сердечка'));
       else if (m.dueAt <= Date.now()) row.append(button('Открыть ответ', () => showReply(m.id), 'primary'));
       else row.append(node('p', '', 'Посылка в пути'));
       body.append(row);
@@ -418,5 +440,15 @@
   $('restart-confirm').addEventListener('click', () => { finishDrag(); game = new E.Game(); $('find-feedback').hidden = true; selected = null; snowSelection = null; currentOrder = null; currentMail = null; clearPending(); $('restart-dialog').close(); save(); render(); tip(intro()); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) { finishDrag(); save(); } });
   setInterval(() => { const energy = game.state.energy; game.regen(); if (energy !== game.state.energy) { save(); if (!drag && !document.querySelector('dialog[open]')) render(); } updateEnergy(); updateMailbox(); }, 1000);
+  const THEME_KEY = 'pochta-background-theme';
+  function applyTheme(theme, persist = true) {
+    if (!['blue', 'purple', 'green'].includes(theme)) theme = 'purple';
+    document.body.setAttribute('data-theme', theme);
+    for (const name of ['blue', 'purple', 'green']) $('theme-' + name).setAttribute('aria-pressed', String(name === theme));
+    if (persist) { try { localStorage.setItem(THEME_KEY, theme); } catch (_) { /* Theme remains usable without storage. */ } }
+  }
+  for (const theme of ['blue', 'purple', 'green']) $('theme-' + theme).addEventListener('click', () => applyTheme(theme));
+  let initialTheme = 'purple'; try { initialTheme = localStorage.getItem(THEME_KEY) || 'purple'; } catch (_) { /* Default background. */ }
+  applyTheme(initialTheme, false);
   save(); render(); tip(loadMessage || intro());
 })();

@@ -1,0 +1,38 @@
+{
+  "tool": "built-in ImageGen",
+  "reference": "../style-01.png",
+  "sprites": [
+    {
+      "name": "generator",
+      "prompt": "Use the supplied sewing concept sheet as the exact design, warm coral/cream palette and painted 2.5D style reference. Create ONE isolated game sprite only, not a sheet, no text, numbers, labels, frame, scenery or watermark. Genuine transparent background. Preserve the reference object's design, camera angle, cozy rounded forms, warm upper-left light, brass/wood where appropriate. Simple broad details readable in a 48-pixel merge cell, not photorealistic. Entire object centered with 8% margin; no cropped elements, floating glows or heavy ground shadow. Subject: the compact coral-red sewing machine from the top left of the sheet, cream inset, brass handwheel, cream thread spool, visible simple needle, honey wooden base. A complete charming sewing machine."
+    },
+    {
+      "name": "part-1",
+      "prompt": "Use the supplied sewing concept sheet as the exact design, warm coral/cream palette and painted 2.5D style reference. Create ONE isolated game sprite only, not a sheet, no text, numbers, labels, frame, scenery or watermark. Genuine transparent background. Preserve the reference object's design, camera angle, cozy rounded forms, warm upper-left light, brass/wood where appropriate. Simple broad details readable in a 48-pixel merge cell, not photorealistic. Entire object centered with 8% margin; no cropped elements, floating glows or heavy ground shadow. Subject: the single folded coral fabric scrap from the top row, with one lifted fold revealing a cream underside. One compact square textile, no tools or other pieces."
+    },
+    {
+      "name": "part-2",
+      "prompt": "Use the supplied sewing concept sheet as the exact design, warm coral/cream palette and painted 2.5D style reference. Create ONE isolated game sprite only, not a sheet, no text, numbers, labels, frame, scenery or watermark. Genuine transparent background. Preserve the reference object's design, camera angle, cozy rounded forms, warm upper-left light, brass/wood where appropriate. Simple broad details readable in a 48-pixel merge cell, not photorealistic. Entire object centered with 8% margin; no cropped elements, floating glows or heavy ground shadow. Subject: the thick folded cream fabric length from the top row, coral inner face visible in a broad layered S-shaped fold. A compact folded roll with a clearly bulkier silhouette than the single scrap."
+    },
+    {
+      "name": "part-3",
+      "prompt": "Use the supplied sewing concept sheet as the exact design, warm coral/cream palette and painted 2.5D style reference. Create ONE isolated game sprite only, not a sheet, no text, numbers, labels, frame, scenery or watermark. Genuine transparent background. Preserve the reference object's design, camera angle, cozy rounded forms, warm upper-left light, brass/wood where appropriate. Simple broad details readable in a 48-pixel merge cell, not photorealistic. Entire object centered with 8% margin; no cropped elements, floating glows or heavy ground shadow. Subject: the pattern set from the top right: two overlapping cream paper patterns, one mitten shape and one broad teddy body, thick dashed coral cut lines without letters, atop one coral swatch. Compact cluster, simple bold shapes."
+    },
+    {
+      "name": "gift-1",
+      "prompt": "Use the supplied sewing concept sheet as the exact design, warm coral/cream palette and painted 2.5D style reference. Create ONE isolated game sprite only, not a sheet, no text, numbers, labels, frame, scenery or watermark. Genuine transparent background. Preserve the reference object's design, camera angle, cozy rounded forms, warm upper-left light, brass/wood where appropriate. Simple broad details readable in a 48-pixel merge cell, not photorealistic. Entire object centered with 8% margin; no cropped elements, floating glows or heavy ground shadow. Subject: the finished caramel plush teddy keychain from bottom left, small cuddly bear with cream muzzle and belly, dark dot eyes, coral fabric loop and a large clearly visible brass keyring above its head. Preserve the sweet reference expression."
+    },
+    {
+      "name": "gift-2",
+      "prompt": "Use the supplied sewing concept sheet as the exact design, warm coral/cream palette and painted 2.5D style reference. Create ONE isolated game sprite only, not a sheet, no text, numbers, labels, frame, scenery or watermark. Genuine transparent background. Preserve the reference object's design, camera angle, cozy rounded forms, warm upper-left light, brass/wood where appropriate. Simple broad details readable in a 48-pixel merge cell, not photorealistic. Entire object centered with 8% margin; no cropped elements, floating glows or heavy ground shadow. Subject: the finished small seated warm gray plush kitten from bottom row, cream belly and muzzle, coral scarf, soft triangular ears, curled tail, simple friendly face and peach paw pads. Match the reference toy, not a living cat."
+    },
+    {
+      "name": "gift-3",
+      "prompt": "Use the supplied sewing concept sheet as the exact design, warm coral/cream palette and painted 2.5D style reference. Create ONE isolated game sprite only, not a sheet, no text, numbers, labels, frame, scenery or watermark. Genuine transparent background. Preserve the reference object's design, camera angle, cozy rounded forms, warm upper-left light, brass/wood where appropriate. Simple broad details readable in a 48-pixel merge cell, not photorealistic. Entire object centered with 8% margin; no cropped elements, floating glows or heavy ground shadow. Subject: the finished seated vanilla cream plush bunny from bottom row, two long floppy ears with rosy inner ears, caramel paw pads, coral neckerchief and a tender friendly face. Match the reference."
+    },
+    {
+      "name": "gift-4",
+      "prompt": "Use the supplied sewing concept sheet as the exact design, warm coral/cream palette and painted 2.5D style reference. Create ONE isolated game sprite only, not a sheet, no text, numbers, labels, frame, scenery or watermark. Genuine transparent background. Preserve the reference object's design, camera angle, cozy rounded forms, warm upper-left light, brass/wood where appropriate. Simple broad details readable in a 48-pixel merge cell, not photorealistic. Entire object centered with 8% margin; no cropped elements, floating glows or heavy ground shadow. Subject: the finished caramel capybara plush from bottom right, wide rounded squat body, broad cream muzzle, tiny round ears, short dark paws, calm dot eyes and a single peach cloth leaf on its head. Match the reference capybara; not a bear, no hoodie."
+    }
+  ]
+}

@@ -56,7 +56,7 @@ function session(storage = new Map()) {
   const sandbox = { document: doc, Date: FakeDate, console, localStorage: { getItem: k => storage.get(k) || null, setItem: (k, v) => storage.set(k, v) }, setInterval: fn => intervals.push(fn), addEventListener() {} };
   sandbox.window = sandbox; const context = vm.createContext(sandbox);
   for (const file of ['content.js', 'engine.js', 'app.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, file), 'utf8'), context, { filename: file });
-  return { doc, storage, context, state: () => JSON.parse(storage.get('pochta-workshops-v12')), advance(ms) { now += ms; intervals.forEach(fn => fn()); } };
+  return { doc, storage, context, state: () => JSON.parse(storage.get('pochta-workshops-v20')), advance(ms) { now += ms; intervals.forEach(fn => fn()); } };
 }
 test('Actual UI handlers: initial render → recipe → craft → send → delayed answer → heart → snow', () => {
   const s = session(), $ = id => s.doc.getElementById(id);
@@ -79,7 +79,7 @@ test('UI reload reads its own save, catalog has eight tiers, and errors in stora
   const first = session(); const state = first.state();
   const second = session(first.storage); assert.deepEqual(second.state(), state);
   const catalog = second.doc.getElementById('catalog'); assert.equal(catalog.querySelectorAll('.catalog-part').length, 8); assert.equal(catalog.querySelectorAll('.catalog-gift').length, 8);
-  const broken = new Map([['pochta-workshops-v12', '{broken json']]); const recovered = session(broken); assert.match(recovered.doc.getElementById('tip').textContent, /Хранилище/); assert.equal(recovered.state().version, 12);
+  const broken = new Map([['pochta-workshops-v20', '{broken json']]); const recovered = session(broken); assert.match(recovered.doc.getElementById('tip').textContent, /Хранилище/); assert.equal(recovered.state().version, 20);
 });
 
 test('Board crafting marks the envelope ready; opening the full letter sends the gift once', () => {
@@ -98,7 +98,7 @@ test('Board crafting marks the envelope ready; opening the full letter sends the
 test('An existing v8 save migrates automatically and stays untouched', () => {
   const first = session(), old = first.state(); old.version = 8; delete old.giftStore;
   const serialized = JSON.stringify(old), storage = new Map([['pochta-workshops-v8', serialized]]);
-  const upgraded = session(storage); assert.equal(upgraded.state().version, 12); assert.equal(upgraded.state().letters[0].id, old.letters[0].id);
+  const upgraded = session(storage); assert.equal(upgraded.state().version, 20); assert.equal(upgraded.state().letters[0].id, old.letters[0].id);
   assert.equal(storage.get('pochta-workshops-v8'), serialized); assert.match(upgraded.doc.getElementById('tip').textContent, /перенесён/);
 });
 
@@ -122,7 +122,7 @@ test('Blue sprites stay consistent across board, letter and recipe, with a reada
   assert.equal($('recipe-items').querySelector('img').src, giftImage.src);
   assert.equal($('recipe-items').querySelectorAll('.part-chip').length, 2);
   generator.events.error[0](); assert.equal($('board').children[3].querySelector('img'), null); assert.match($('board').children[3].textContent, /🧰/);
-  assert.equal(s.state().version, 12); // Current save schema.
+  assert.equal(s.state().version, 20); // Current save schema.
 });
 
 test('Single toolbox creates a part with a single click without losing usable board space', () => {
@@ -154,11 +154,11 @@ test('Room restoration survives reload and workshop transitions, and undo remove
   // Valid history of successful deliveries funds clearance; production is covered by engine tests.
   for (let n = 0; n < 400; n++) {
     const order = JSON.parse(JSON.stringify(g.state.letters[0])); order.id = g.state.nextId++;
-    g.state.mail.push({ id: g.state.nextMailId++, order, shift: 0, attempt: 1, outcome: 'success', claimed: true, bonusEnergy: 0, dueAt: 1000000 });
+    g.state.mail.push({ id: g.state.nextMailId++, order, shift: 0, attempt: 1, outcome: 'success', claimed: true, bonusEnergy: 0, rewardThanks: 1, dueAt: 1000000 });
   }
   g.state.thanks = 400;
   assert(E.validate(g.state));
-  const load = () => session(new Map([['pochta-workshops-v12', JSON.stringify(g.state)]]));
+  const load = () => session(new Map([['pochta-workshops-v20', JSON.stringify(g.state)]]));
   const clearOne = () => {
     const cell = g.state.board.findIndex((x, i) => x?.snow && E.accessible(g.state, i));
     assert(cell >= 0); assert(g.act({ type: 'melt', cell }).ok); return cell;
@@ -192,6 +192,15 @@ test('Room restoration survives reload and workshop transitions, and undo remove
       assert.equal(get('generators').children.length, 1); get('generators').children[0].click();
       assert.equal(switched.state().energy, before.energy - 1);
       assert.equal(switched.state().board.filter(x => x?.chain === chain).length, before.board.filter(x => x?.chain === chain).length + 1);
+      if (chain === 'sew') {
+        const sewing = get('catalog').querySelectorAll('.catalog-workshop')[1];
+        assert.equal(sewing.querySelectorAll('.catalog-part').filter(row => row.querySelector('img')).length, 3);
+        assert.equal(sewing.querySelectorAll('.catalog-gift').filter(row => row.querySelector('img')).length, 4);
+        const click = cell => get('board').events.click[0]({ target: get('board').children[E.at(cell)] });
+        click('D4'); click('D3');
+        const gift = get('board').children[E.at('D3')].querySelector('img'); assert.match(gift.src, /sewing\/sprites\/gift-1.webp$/);
+        assert.equal(switched.state().board[E.at('D3')].gift.chain, 'sew');
+      }
     }
   }
   assert(load().doc.getElementById('room-scene').className.includes('post-restored'));
@@ -204,7 +213,7 @@ test('Snow artwork distinguishes all three costs and clearance reveals one find 
   assert(g.act({ type: 'send', orderId: order.id }).ok);
   g.state.mail[0].dueAt = 1000000;
   assert(g.act({ type: 'claim', mailId: g.state.mail[0].id }).ok);
-  const s = session(new Map([['pochta-workshops-v12', JSON.stringify(g.state)]])), $ = id => s.doc.getElementById(id);
+  const s = session(new Map([['pochta-workshops-v20', JSON.stringify(g.state)]])), $ = id => s.doc.getElementById(id);
   for (const [cell, file, cost] of [['B4','loose',1],['D6','packed',2],['D9','ice',5]]) {
     const el = $('board').children[E.at(cell)]; assert.match(el.querySelector('img').src, new RegExp(file+'\\.webp$')); assert.equal(el.querySelector('.level').textContent, cost+'♡');
   }
@@ -215,4 +224,33 @@ test('Snow artwork distinguishes all three costs and clearance reveals one find 
   assert.equal(s.state().thanks, 0); assert.equal(s.state().cleared.length, 1); assert.equal(s.state().board[E.at('B4')], null);
   assert(!$('find-feedback').hidden); assert.match($('find-title').textContent, /Станина/); assert($('board').children[E.at('B4')].querySelector('.clear-effect'));
   $('undo').click(); assert.equal(s.state().thanks, 1); assert.equal(s.state().cleared.length, 0); assert($('find-feedback').hidden);
+});
+
+test('Purple is the default; choosing green survives reload without touching game progress; all tech ranks have art', () => {
+  const s = session(), $ = id => s.doc.getElementById(id);
+  assert.equal(s.doc.body.attrs['data-theme'], 'purple');
+  const before = s.state(); $('theme-green').click();
+  assert.equal(s.doc.body.attrs['data-theme'], 'green'); assert.deepEqual(s.state(), before);
+  const reload = session(s.storage); assert.equal(reload.doc.body.attrs['data-theme'], 'green'); assert.deepEqual(reload.state(), before);
+  const catalog = $('catalog');
+  assert.equal(catalog.querySelectorAll('.catalog-part').filter(row=>row.querySelector('img')).length, 8);
+  assert.equal(catalog.querySelectorAll('.catalog-gift').filter(row=>row.querySelector('img')).length, 8);
+});
+
+test('High-level reward is visible in the letter and reply and can be claimed once', () => {
+  const E=require('./engine.js'), g=new E.Game(undefined,()=>1000000,()=>.5), L=g.state.letters[0];
+  L.want=[E.item('tech',8)]; L.packed=[false]; L.protected=true; g.state.giftStore=JSON.parse(JSON.stringify(L.want));
+  const s=session(new Map([['pochta-workshops-v20',JSON.stringify(g.state)]])), $=id=>s.doc.getElementById(id);
+  $('letters').children[0].querySelector('button').click(); assert.match($('recipe-story').textContent,/4 ♡/);
+  $('recipe-send').click(); assert.equal(s.state().thanks,0); s.advance(20000); $('mail-list').querySelector('button').click(); assert.match($('reply-claim').textContent,/4 ♡/);
+  $('reply-claim').click(); assert.equal(s.state().thanks,4); assert.equal(session(s.storage).state().thanks,4);
+});
+
+test('The app imports v12 pending rewards and leaves its original save untouched', () => {
+  const E=require('./engine.js'), g=new E.Game(undefined,()=>1000000,()=>.5), L=g.state.letters[0];
+  L.want=[E.item('tech',8)]; L.packed=[true]; assert(g.act({type:'send',orderId:L.id}).ok);
+  const old=JSON.parse(JSON.stringify(g.state)); old.version=12; old.mail.forEach(m=>delete m.rewardThanks);
+  const serialized=JSON.stringify(old), storage=new Map([['pochta-workshops-v12',serialized]]), upgraded=session(storage);
+  assert.equal(upgraded.state().version,20); assert.equal(upgraded.state().mail[0].rewardThanks,4); assert.equal(upgraded.state().energy,old.energy);
+  assert.equal(storage.get('pochta-workshops-v12'),serialized);
 });

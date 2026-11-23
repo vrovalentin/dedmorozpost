@@ -259,3 +259,39 @@ test('Existing v10 save gains ten energy once and keeps pending reply bonuses in
   const converted = E.migrate(old); assert.equal(converted.energy, 17); assert.equal(converted.mail[0].bonusEnergy, 1);
   assert.deepEqual(E.migrate(converted), converted); assert.equal(old.energy, 7);
 });
+
+test('Reward per gift rank is paid only by a successful reply and summed for two gifts', () => {
+  for (let level=1; level<=8; level++) {
+    const f=fixture(), L=f.g.state.letters[0], expected=Math.max(1,level-4);
+    L.want=[E.item('tech',level)]; L.packed=[false]; f.g.state.giftStore=[E.item('tech',level)];
+    act(f,{type:'send',orderId:L.id}); const m=f.g.state.mail.at(-1);
+    assert.equal(m.rewardThanks,expected); assert.equal(f.g.state.thanks,0);
+    const reload=new E.Game(copy(f.g.state),f.g.now); assert.equal(reload.state.mail.at(-1).rewardThanks,expected);
+    f.advance(E.MAIL_MS); act(f,{type:'claim',mailId:m.id}); assert.equal(f.g.state.thanks,expected);
+    assert(!f.g.act({type:'claim',mailId:m.id}).ok);
+  }
+  const f=fixture(), L=f.g.state.letters[0]; L.want=[E.item('tech',6),E.item('tech',8)]; L.packed=[false,false]; f.g.state.giftStore=copy(L.want);
+  act(f,{type:'send',orderId:L.id}); const m=f.g.state.mail.at(-1); f.advance(E.MAIL_MS); act(f,{type:'claim',mailId:m.id}); assert.equal(f.g.state.thanks,6);
+});
+
+test('A lost high-level gift pays its full reward once after retry; damage still pays nothing', () => {
+  const f=fixture(.8), L=f.g.state.letters[0]; L.want=[E.item('tech',8)]; L.packed=[false]; f.g.state.giftStore=copy(L.want);
+  act(f,{type:'send',orderId:L.id}); const lost=f.g.state.mail.at(-1); f.advance(E.MAIL_MS); act(f,{type:'claim',mailId:lost.id}); assert.equal(f.g.state.thanks,0);
+  const retry=f.g.state.extra[0]; f.g.state.giftStore=copy(retry.want); act(f,{type:'send',orderId:retry.id}); const success=f.g.state.mail.at(-1); f.advance(E.MAIL_MS); act(f,{type:'claim',mailId:success.id}); assert.equal(f.g.state.thanks,4);
+  const d=fixture(.95), order=d.g.state.letters[0]; order.want=[E.item('tech',8)]; order.packed=[false]; d.g.state.giftStore=copy(order.want); act(d,{type:'send',orderId:order.id}); d.advance(E.MAIL_MS); act(d,{type:'claim',mailId:d.g.state.mail.at(-1).id}); assert.equal(d.g.state.thanks,0);
+});
+
+test('Late requests still include simple gifts and permanently upgraded generators stay upgraded', () => {
+  const f=fixture(), levels=[];
+  for(let n=0;n<80;n++) { const L=f.g.state.letters[0]; levels.push(L.want[0].level); L.packed=L.want.map(()=>true); act(f,{type:'send',orderId:L.id}); }
+  const late=levels.slice(-24); assert(late.some(n=>n===8)); assert.equal(late.filter(n=>n<=2).length,6); assert.equal(f.g.state.unlocked.tech,8);
+});
+
+test('Migrating v12 keeps already earned rewards and upgrades pending answers without extra energy', () => {
+  const f=fixture(), L=f.g.state.letters[0]; L.want=[E.item('tech',8)]; L.packed=[true]; act(f,{type:'send',orderId:L.id});
+  const pending=copy(f.g.state); pending.version=12; pending.mail.forEach(m=>delete m.rewardThanks);
+  const upgraded=E.migrate(pending); assert.equal(upgraded.energy,pending.energy); assert.equal(upgraded.mail[0].rewardThanks,4); assert.equal(upgraded.thanks,0); assert(E.validate(upgraded));
+  const claimed=copy(pending); claimed.mail[0].claimed=true; claimed.thanks=1;
+  const migrated=E.migrate(claimed); assert.equal(migrated.mail[0].rewardThanks,1); assert.equal(migrated.thanks,1); assert.deepEqual(E.migrate(migrated),migrated);
+  const broken=copy(pending); delete broken.mail[0].order; assert.equal(E.migrate(broken),null);
+});

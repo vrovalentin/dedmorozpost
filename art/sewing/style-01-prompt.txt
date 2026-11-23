@@ -1,0 +1,24 @@
+Tool: built-in ImageGen
+Reference: ../tech/style-02-blue.png (style and layout only)
+
+Use case: stylized-concept.
+Asset type: ONE polished art-direction concept sheet for the sewing production chain in the cozy merge game "Почта Деда Мороза".
+Input image: the provided blue technical workshop sheet is a STYLE AND LAYOUT REFERENCE ONLY. Match its bright rounded painted 2.5D casual game rendering, soft upper-left light, mostly clean surfaces, clear silhouettes and three-quarter camera slightly from above. Do NOT copy its cars, robots, metal parts or toolbox.
+Create a landscape sheet on the same plain warm ivory background with eight clearly separated objects arranged in two rows of four. Generous negative space, clean consistent presentation, no UI panels or frames.
+SEWING PALETTE: rich warm coral / raspberry enamel accents, peach and cream cloth, honey wood, warm brass small hardware; plush toys in caramel, vanilla and warm gray with rosy details. Bright and inviting, no washed-out dusty filter, no purple background, no turquoise-dominant objects. Keep texture broad and restrained so individual sprites will read at 48 pixels.
+Top row, left to right:
+1. A friendly compact sewing machine generator: rounded warm coral enamel body, cream inset, large visible brass handwheel, simple needle arm, small spool of cream thread, honey wood base. Clearly a useful sewing machine, no anthropomorphic face.
+2. A SINGLE folded coral fabric scrap, a simple big soft square with one folded corner and cream underside, no scattered tools.
+3. A neat compact folded fabric length: a thick cream roll folded back on itself showing a coral inner face and simple visible layered edge, distinct bulkier silhouette than the scrap, no ribbon or gift wrapping.
+4. A pattern set: exactly two overlapping cream paper sewing patterns, one large simple mitten-shaped pattern and one broad teddy body pattern, broad dashed coral cut lines, no text, one small coral fabric swatch underneath. Compact clear cluster, no tiny clutter.
+Bottom row, left to right:
+1. A plush keychain: small round caramel teddy-bear face with two tiny ears, short soft body, cream muzzle, warm friendly dot eyes, one large brass keyring visibly attached at top by a coral fabric loop. Obviously a complete soft toy gift, not raw stuffing.
+2. A small plush kitten: warm gray fluffy round seated body, cream belly, triangular ears with pink inner ears, short curled tail and one coral scarf; tender simple face with dark dot eyes, plush fabric and a few broad seams, not a living photorealistic cat.
+3. A plush bunny: vanilla cream seated soft rabbit with two long floppy ears, rosy inner ears, warm caramel paws and a small coral neckerchief; soft friendly face, clearly different long-eared silhouette from kitten.
+4. A capybara plush: warm caramel rounded chunky body, tiny round ears, broad squared cream muzzle, short legs, calm kind dark dot eyes and one little peach fabric leaf on its head. Immediately recognizable capybara, not a bear or guinea pig, no hoodie yet.
+All toys are finished gifts without boxes or wrapping. Friendly domestic cozy New Year craft mood, no Christmas clutter.
+Text: dark warm raspberry clear readable Russian title at top exactly "Швейная мастерская".
+Captions below top row objects exactly "Швейная машинка", "Лоскут ткани", "Отрез ткани", "Набор выкроек".
+Captions below bottom row exactly "Плюшевый брелок", "Плюшевый котик", "Плюшевый зайка", "Капибара".
+Small centered bottom note exactly "Проба стиля · 01".
+No other words, no watermark. Caption placement outside silhouettes. Prioritize charming usable game object design over decoration.
