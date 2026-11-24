@@ -116,3 +116,21 @@ body[data-theme="blue"] .speed-control,body[data-theme="purple"] .speed-control{
 body[data-theme="blue"] .save-status,body[data-theme="blue"] footer,body[data-theme="purple"] .save-status,body[data-theme="purple"] footer{color:var(--night-muted)}
 .appearance{padding:10px 12px;border:1px solid #dfd9ce33;border-radius:10px;color:#f4e7d1;font-size:12px;background:#ffffff08}.appearance summary{cursor:pointer}.theme-options{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.theme-choice{font-size:11px;min-height:38px;padding:8px 10px;color:#fff4dd;border:2px solid transparent}.theme-choice.blue{background:#1d3968}.theme-choice.purple{background:#513168}.theme-choice.green{background:#294745}.theme-choice[aria-pressed="true"]{border-color:#efd59c;box-shadow:0 0 0 1px #f9e5b533}.theme-choice[aria-pressed="true"]:before{content:"✓ ";color:#ffe1a1}
 .catalog-workshop>summary>.game-icon{width:40px;height:40px;margin-right:7px;vertical-align:middle}
+/* v21: letter roles and the two first predictable energy gifts. */
+.envelope-tier{position:absolute;right:-3px;top:-6px;z-index:3;padding:3px 5px;border-radius:5px;font-size:8px;line-height:1;color:#3f5160;border:1px solid #b4c7d0;background:#e0edf2;box-shadow:0 1px 2px #33251c44}.envelope-tier.medium{background:#f5e7bf;border-color:#cfb475;color:#6f512b}.envelope-tier.hard{background:#eaddf0;border-color:#b59ac7;color:#5c3d72}.energy-gifts{display:flex;gap:8px;flex-wrap:wrap}.energy-gift{flex:1;min-width:130px;display:flex;flex-direction:column;align-items:start;gap:5px;padding:10px 12px;border:1px solid #dfcfad55;border-radius:10px;background:#fff2d815;color:#fae8cc}.energy-gift strong{font-size:12px}.energy-gift small{font-size:10px;color:#d8d4d0}.energy-gift button{font-size:11px;min-height:34px;padding:6px 9px;background:#d8e2d2;color:#3c5744}.energy-gift.ready{border-color:#eac36a;background:#f1d99522}.personal-reply{color:#50684b;line-height:1.6}@media(max-width:999px){.app>.energy-gifts{order:2}.energy-gift{padding:8px 10px}}
+/* v23: explicit columns instead of auto-placing individual panels in grid rows. */
+.app.layout-fixed{display:flex;flex-direction:column;max-width:1050px;gap:14px;align-items:stretch}
+.app.layout-fixed>*{order:0;grid-row:auto;grid-column:auto;min-width:0}
+.game-layout{display:grid;grid-template-columns:minmax(0,600px) minmax(0,1fr);gap:24px;align-items:start;min-width:0}
+.workshop-column,.sidebar{display:flex;flex-direction:column;gap:14px;min-width:0}
+.workshop-column>*{min-width:0}.sidebar>*{min-width:0;max-width:100%}.sidebar .energy-gifts{width:100%}.sidebar .energy-gift{min-width:0;flex:1 1 125px}.sidebar .letters{gap:7px}.sidebar .mail-row>span,.sidebar .bag-row>span{min-width:0;overflow-wrap:anywhere}.sidebar .tools{gap:6px}.sidebar .goal{align-items:flex-start}.sidebar .goal>strong{padding-top:6px}.sidebar .project-part{max-width:100%;overflow-wrap:anywhere}.sidebar .extra-panel>summary{overflow-wrap:anywhere}
+@media(max-width:999px){.app.layout-fixed{max-width:600px}.game-layout{display:flex;flex-direction:column;gap:14px}.workshop-column,.sidebar{width:100%}.app.layout-fixed>.resources{width:100%;max-width:none}}
+/* Clean modal surfaces: white paper, purple actions, neutral backdrop. */
+dialog{background:#fff;color:#2d2932;border:1px solid #e5e1eb;border-radius:14px;box-shadow:0 18px 64px #140c233d}
+dialog::backdrop{background:rgb(19 12 31 / 62%)}
+dialog button{background:#6c3bb2;color:#fff;border:1px solid transparent;border-radius:8px;box-shadow:none}
+dialog button:not(:disabled):hover{background:#593092;filter:none}
+dialog button:focus-visible{outline:3px solid #b49bd5;outline-offset:3px}
+dialog button:disabled{background:#e3d7f1;color:#78618e;opacity:1;cursor:default;box-shadow:none}
+dialog .gift-recipe{border-color:#e8e5ed}dialog .dialog-heading button{background:#6c3bb2;color:#fff}dialog .dialog-heading button:hover{background:#593092}
+dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{border-color:#e8e5ed}dialog .part-chip{background:#fff}dialog .part-chip.available{background:#edf4eb}

@@ -72,7 +72,7 @@ test('Exact recipes consume components, gifts live outside the board, and level 
   act(f, { type: 'craft', orderId: L.id, giftIndex: 0 }); assert.equal(s.energy, energy); assert.equal(s.board.filter(E.isItem).length, before - 2); assert(L.packed[0]);
   assert(!f.g.act({ type: 'craft', orderId: L.id, giftIndex: 0 }).ok);
   assert(f.g.undo().ok); assert.equal(f.g.state.board.filter(E.isItem).length, before);
-  const g = fixture(); const order = g.g.state.letters[0]; order.want = [{ chain: 'tech', level: 8 }]; order.packed = [false];
+  const g = fixture(); const order = g.g.state.letters[0]; order.storyId = null; order.want = [{ chain: 'tech', level: 8 }]; order.packed = [false];
   g.g.state.board = E.makeBoard(0).map(x => E.isItem(x) ? null : x);
   [8, 6, 1, 2].forEach((level, n) => { g.g.state.board[7 + n] = E.item('tech', level); });
   assert(!E.canCraft(g.g.state, order.id, 0)); g.g.state.board[11] = E.item('tech', 3); assert(E.canCraft(g.g.state, order.id, 0));
@@ -188,7 +188,7 @@ test('Board-crafted gifts send once, accept duplicate quantities, and undo resto
   act(f, { type: 'drop', from: E.at('C4'), to: E.at('C3') }); assert(E.isGift(f.g.state.board[E.at('C3')])); assert(E.canSend(f.g.state, L.id));
   act(f, { type: 'send', orderId: L.id }); assert.equal(f.g.state.board[E.at('C3')], null);
   assert(f.g.undo().ok); assert(E.isGift(f.g.state.board[E.at('C3')])); assert.equal(f.g.state.mail.length, 0);
-  const restored = E.findOrder(f.g.state, L.id); restored.want.push(copy(restored.want[0])); restored.packed.push(false);
+  const restored = E.findOrder(f.g.state, L.id); restored.storyId = null; restored.want.push(copy(restored.want[0])); restored.packed.push(false);
   assert(!E.canSend(f.g.state, restored.id));
   const a = obtain(f, 'tech', 2), b = obtain(f, 'tech', 1, new Set([a])); act(f, { type: 'drop', from: a, to: b }); assert(E.canSend(f.g.state, restored.id));
   act(f, { type: 'send', orderId: restored.id }); assert.equal(f.g.state.board.filter(E.isGift).length, 0);
@@ -210,7 +210,7 @@ test('Long assembly survives reload and returns all components; no space means n
 test('Finished gifts carry to next workshop in storage and count toward sending', () => {
   const f = fixture(); finish(f);
   const gift = E.combine(E.item('tech', 2), E.item('tech', 1)), free = f.g.state.board.indexOf(null); f.g.state.board[free] = gift;
-  const original = f.g.state.letters[0]; original.want = [E.item('tech', 1)]; original.packed = [false];
+  const original = f.g.state.letters[0]; original.storyId = null; original.want = [E.item('tech', 1)]; original.packed = [false];
   act(f, { type: 'next' }); assert.equal(f.g.state.giftStore.length, 1); assert(E.canSend(f.g.state, original.id));
   act(f, { type: 'send', orderId: original.id }); assert.equal(f.g.state.giftStore.length, 0);
 });
@@ -263,35 +263,105 @@ test('Existing v10 save gains ten energy once and keeps pending reply bonuses in
 test('Reward per gift rank is paid only by a successful reply and summed for two gifts', () => {
   for (let level=1; level<=8; level++) {
     const f=fixture(), L=f.g.state.letters[0], expected=Math.max(1,level-4);
-    L.want=[E.item('tech',level)]; L.packed=[false]; f.g.state.giftStore=[E.item('tech',level)];
+    L.storyId = null; L.want =[E.item('tech',level)]; L.packed=[false]; f.g.state.giftStore=[E.item('tech',level)];
     act(f,{type:'send',orderId:L.id}); const m=f.g.state.mail.at(-1);
     assert.equal(m.rewardThanks,expected); assert.equal(f.g.state.thanks,0);
     const reload=new E.Game(copy(f.g.state),f.g.now); assert.equal(reload.state.mail.at(-1).rewardThanks,expected);
     f.advance(E.MAIL_MS); act(f,{type:'claim',mailId:m.id}); assert.equal(f.g.state.thanks,expected);
     assert(!f.g.act({type:'claim',mailId:m.id}).ok);
   }
-  const f=fixture(), L=f.g.state.letters[0]; L.want=[E.item('tech',6),E.item('tech',8)]; L.packed=[false,false]; f.g.state.giftStore=copy(L.want);
+  const f=fixture(), L=f.g.state.letters[0]; L.storyId = null; L.want =[E.item('tech',6),E.item('tech',8)]; L.packed=[false,false]; f.g.state.giftStore=copy(L.want);
   act(f,{type:'send',orderId:L.id}); const m=f.g.state.mail.at(-1); f.advance(E.MAIL_MS); act(f,{type:'claim',mailId:m.id}); assert.equal(f.g.state.thanks,6);
 });
 
 test('A lost high-level gift pays its full reward once after retry; damage still pays nothing', () => {
-  const f=fixture(.8), L=f.g.state.letters[0]; L.want=[E.item('tech',8)]; L.packed=[false]; f.g.state.giftStore=copy(L.want);
+  const f=fixture(.8), L=f.g.state.letters[0]; L.storyId = null; L.want =[E.item('tech',8)]; L.packed=[false]; f.g.state.giftStore=copy(L.want);
   act(f,{type:'send',orderId:L.id}); const lost=f.g.state.mail.at(-1); f.advance(E.MAIL_MS); act(f,{type:'claim',mailId:lost.id}); assert.equal(f.g.state.thanks,0);
   const retry=f.g.state.extra[0]; f.g.state.giftStore=copy(retry.want); act(f,{type:'send',orderId:retry.id}); const success=f.g.state.mail.at(-1); f.advance(E.MAIL_MS); act(f,{type:'claim',mailId:success.id}); assert.equal(f.g.state.thanks,4);
-  const d=fixture(.95), order=d.g.state.letters[0]; order.want=[E.item('tech',8)]; order.packed=[false]; d.g.state.giftStore=copy(order.want); act(d,{type:'send',orderId:order.id}); d.advance(E.MAIL_MS); act(d,{type:'claim',mailId:d.g.state.mail.at(-1).id}); assert.equal(d.g.state.thanks,0);
+  const d=fixture(.95), order=d.g.state.letters[0]; order.storyId = null; order.want =[E.item('tech',8)]; order.packed=[false]; d.g.state.giftStore=copy(order.want); act(d,{type:'send',orderId:order.id}); d.advance(E.MAIL_MS); act(d,{type:'claim',mailId:d.g.state.mail.at(-1).id}); assert.equal(d.g.state.thanks,0);
 });
 
 test('Late requests still include simple gifts and permanently upgraded generators stay upgraded', () => {
-  const f=fixture(), levels=[];
-  for(let n=0;n<80;n++) { const L=f.g.state.letters[0]; levels.push(L.want[0].level); L.packed=L.want.map(()=>true); act(f,{type:'send',orderId:L.id}); }
-  const late=levels.slice(-24); assert(late.some(n=>n===8)); assert.equal(late.filter(n=>n<=2).length,6); assert.equal(f.g.state.unlocked.tech,8);
+  const f=fixture();
+  for(let n=0;n<80;n++) { const L=f.g.state.letters[n % 3]; L.packed=L.want.map(()=>true); act(f,{type:'send',orderId:L.id}); assert.deepEqual(f.g.state.letters.map(L=>L.difficulty), ['easy','medium','hard']); assert(f.g.state.letters[0].want[0].level<=2); }
+  assert.equal(f.g.state.letters[2].want[0].level,8); assert.equal(f.g.state.unlocked.tech,8);
 });
 
 test('Migrating v12 keeps already earned rewards and upgrades pending answers without extra energy', () => {
-  const f=fixture(), L=f.g.state.letters[0]; L.want=[E.item('tech',8)]; L.packed=[true]; act(f,{type:'send',orderId:L.id});
+  const f=fixture(), L=f.g.state.letters[0]; L.storyId = null; L.want =[E.item('tech',8)]; L.packed=[true]; act(f,{type:'send',orderId:L.id});
   const pending=copy(f.g.state); pending.version=12; pending.mail.forEach(m=>delete m.rewardThanks);
   const upgraded=E.migrate(pending); assert.equal(upgraded.energy,pending.energy); assert.equal(upgraded.mail[0].rewardThanks,4); assert.equal(upgraded.thanks,0); assert(E.validate(upgraded));
   const claimed=copy(pending); claimed.mail[0].claimed=true; claimed.thanks=1;
   const migrated=E.migrate(claimed); assert.equal(migrated.mail[0].rewardThanks,1); assert.equal(migrated.thanks,1); assert.deepEqual(E.migrate(migrated),migrated);
   const broken=copy(pending); delete broken.mail[0].order; assert.equal(E.migrate(broken),null);
+});
+
+test('Energy gifts unlock at five and ten successful stories, claim once and preserve overflow', () => {
+  const f=fixture(); assert(!f.g.act({type:'energyGift',threshold:5}).ok);
+  for(let i=0;i<5;i++)fulfill(f);
+  assert.equal(E.completedLetters(f.g.state),5); f.g.state.energy=39;
+  act(f,{type:'energyGift',threshold:5}); assert.equal(f.g.state.energy,40);
+  assert.equal(f.g.state.bag.find(t=>t.name==='Подарок снеговика').amount,4);
+  assert(!f.g.act({type:'energyGift',threshold:5}).ok); assert(!f.g.act({type:'energyGift',threshold:10}).ok);
+  const reload=new E.Game(copy(f.g.state),f.g.now); assert.deepEqual(reload.state.energyGiftClaims,[5]);
+  for(let i=0;i<5;i++)fulfill(f);
+  f.g.state.energy=0; f.g.state.energyAt=f.g.now(); act(f,{type:'energyGift',threshold:10}); assert.equal(f.g.state.energy,10);
+  assert.deepEqual(f.g.state.energyGiftClaims,[5,10]); assert(!f.g.act({type:'energyGift',threshold:10}).ok);
+  assert(f.g.undo().ok); assert.equal(f.g.state.energy,0); assert.deepEqual(f.g.state.energyGiftClaims,[5]);
+});
+
+test('Lost and damaged packages do not advance successful-letter gifts; retry counts one', () => {
+  const f=fixture(.8);fulfill(f);assert.equal(E.completedLetters(f.g.state),0);
+  const retry=f.g.state.extra[0];fulfill(f,retry);assert.equal(E.completedLetters(f.g.state),1);
+  f.g.random=()=>.95;fulfill(f);assert.equal(E.completedLetters(f.g.state),1);
+  f.g.random=()=>.5;for(let i=0;i<4;i++)fulfill(f);
+  assert.equal(E.completedLetters(f.g.state),5);act(f,{type:'energyGift',threshold:5});
+});
+
+test('All thirty personal letters match their gift and keep the same story through a lost delivery', () => {
+  assert.equal(E.PERSONAL_LETTERS.length,30);assert.equal(new Set(E.PERSONAL_LETTERS.map(p=>p.id)).size,30);
+  for(const p of E.PERSONAL_LETTERS){assert(E.isItem(p));assert(p.request.length>40);assert(p.reply.length>40);}
+  const f=fixture(.8), L=copy(f.g.state.letters[0]); assert.equal(L.storyId,'young-01');
+  fulfill(f); const retry=f.g.state.extra[0]; assert.equal(retry.storyId,L.storyId);assert.equal(retry.replyText,L.replyText);assert.equal(retry.text,L.text);
+  const success=fulfill(f,retry);assert.equal(success.order.replyText,L.replyText);assert.equal(E.completedLetters(f.g.state),1);
+});
+
+test('v20 requests and their packed gifts survive as additional letters beside three new roles', () => {
+  const f=fixture();pack(f,f.g.state.letters[0]);const old=copy(f.g.state);old.version=20;delete old.energyGiftClaims;
+  for(const L of [...old.letters,...old.extra]){delete L.difficulty;delete L.storyId;delete L.replyText;}
+  const before=copy(old), upgraded=E.migrate(old);assert(upgraded);assert.deepEqual(old,before);
+  assert.deepEqual(upgraded.letters.map(L=>L.difficulty),['easy','medium','hard']);assert.equal(upgraded.energy,old.energy);assert.deepEqual(upgraded.board,old.board);
+  for(const L of old.letters){const kept=E.findOrder(upgraded,L.id);assert(kept);assert.deepEqual(kept.want,L.want);assert.deepEqual(kept.packed,L.packed);assert.equal(kept.text,L.text);}
+  assert(E.canSend(upgraded,old.letters[0].id));assert.deepEqual(upgraded.energyGiftClaims,[]);assert.deepEqual(E.migrate(upgraded),upgraded);
+});
+
+test('Approved age library covers every gift and keeps ten pairs in each age group', () => {
+  const draft=require('../docs/content/personal-letters-by-age.json');assert.equal(draft.status,'approved-active');assert.deepEqual(E.PERSONAL_LETTERS,draft.letters);
+  assert.equal(new Set(E.PERSONAL_LETTERS.map(p=>p.chain+':'+p.level)).size,24);
+  for(const group of ['5–6','7–9','10–12']){
+    const rows=E.PERSONAL_LETTERS.filter(p=>p.ageGroup===group);assert.equal(rows.length,10);
+    const [ageMin,ageMax]=group.split('–').map(Number), [levelMin,levelMax]=draft.rules[group];
+    for(const p of rows){assert(p.age>=ageMin&&p.age<=ageMax);assert(p.level>=levelMin&&p.level<=levelMax);assert(p.who.includes(String(p.age)));}
+  }
+});
+
+test('Original ten stories still load and keep their old text after the age-library update', () => {
+  const f=fixture(), L=f.g.state.letters[0], old=E.LEGACY_PERSONAL_LETTERS[0];
+  Object.assign(L,{who:old.who,text:old.request,replyText:old.reply,storyId:old.id});delete L.age;delete L.ageGroup;
+  const saved=copy(f.g.state), reload=new E.Game(saved,f.g.now);assert.deepEqual(reload.state,saved);
+  const m=fulfill(f,L);assert.equal(m.order.replyText,old.reply);assert.equal(m.order.storyId,old.id);
+});
+
+test('New orders follow gift ages and never duplicate an active personal story', () => {
+  const f=fixture(), seen=[];
+  for(let n=0;n<90;n++){
+    const L=f.g.state.letters[n%3];
+    const level=Math.max(...L.want.map(g=>g.level));assert(level<=2?L.age>=5&&L.age<=6:level<=5?L.age>=7&&L.age<=9:L.age>=10&&L.age<=12);
+    if(L.storyId)seen.push(L.storyId);
+    L.packed=L.want.map(()=>true);act(f,{type:'send',orderId:L.id});
+    const active=[...E.orderList(f.g.state),...f.g.state.mail.filter(m=>!m.claimed).map(m=>m.order)].map(L=>L.storyId).filter(Boolean);
+    assert.equal(new Set(active).size,active.length);
+    f.advance(E.MAIL_MS);act(f,{type:'claim',mailId:f.g.state.mail.at(-1).id});
+  }
+  assert(new Set(seen).size<seen.length,'Stories can be reused after an interval');
 });

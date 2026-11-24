@@ -56,7 +56,7 @@ function session(storage = new Map()) {
   const sandbox = { document: doc, Date: FakeDate, console, localStorage: { getItem: k => storage.get(k) || null, setItem: (k, v) => storage.set(k, v) }, setInterval: fn => intervals.push(fn), addEventListener() {} };
   sandbox.window = sandbox; const context = vm.createContext(sandbox);
   for (const file of ['content.js', 'engine.js', 'app.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, file), 'utf8'), context, { filename: file });
-  return { doc, storage, context, state: () => JSON.parse(storage.get('pochta-workshops-v20')), advance(ms) { now += ms; intervals.forEach(fn => fn()); } };
+  return { doc, storage, context, state: () => JSON.parse(storage.get('pochta-workshops-v21')), advance(ms) { now += ms; intervals.forEach(fn => fn()); } };
 }
 test('Actual UI handlers: initial render → recipe → craft → send → delayed answer → heart → snow', () => {
   const s = session(), $ = id => s.doc.getElementById(id);
@@ -79,7 +79,7 @@ test('UI reload reads its own save, catalog has eight tiers, and errors in stora
   const first = session(); const state = first.state();
   const second = session(first.storage); assert.deepEqual(second.state(), state);
   const catalog = second.doc.getElementById('catalog'); assert.equal(catalog.querySelectorAll('.catalog-part').length, 8); assert.equal(catalog.querySelectorAll('.catalog-gift').length, 8);
-  const broken = new Map([['pochta-workshops-v20', '{broken json']]); const recovered = session(broken); assert.match(recovered.doc.getElementById('tip').textContent, /Хранилище/); assert.equal(recovered.state().version, 20);
+  const broken = new Map([['pochta-workshops-v21', '{broken json']]); const recovered = session(broken); assert.match(recovered.doc.getElementById('tip').textContent, /Хранилище/); assert.equal(recovered.state().version, 21);
 });
 
 test('Board crafting marks the envelope ready; opening the full letter sends the gift once', () => {
@@ -98,7 +98,7 @@ test('Board crafting marks the envelope ready; opening the full letter sends the
 test('An existing v8 save migrates automatically and stays untouched', () => {
   const first = session(), old = first.state(); old.version = 8; delete old.giftStore;
   const serialized = JSON.stringify(old), storage = new Map([['pochta-workshops-v8', serialized]]);
-  const upgraded = session(storage); assert.equal(upgraded.state().version, 20); assert.equal(upgraded.state().letters[0].id, old.letters[0].id);
+  const upgraded = session(storage); assert.equal(upgraded.state().version, 21); assert(upgraded.state().extra.some(L => L.id === old.letters[0].id));
   assert.equal(storage.get('pochta-workshops-v8'), serialized); assert.match(upgraded.doc.getElementById('tip').textContent, /перенесён/);
 });
 
@@ -122,7 +122,7 @@ test('Blue sprites stay consistent across board, letter and recipe, with a reada
   assert.equal($('recipe-items').querySelector('img').src, giftImage.src);
   assert.equal($('recipe-items').querySelectorAll('.part-chip').length, 2);
   generator.events.error[0](); assert.equal($('board').children[3].querySelector('img'), null); assert.match($('board').children[3].textContent, /🧰/);
-  assert.equal(s.state().version, 20); // Current save schema.
+  assert.equal(s.state().version, 21); // Current save schema.
 });
 
 test('Single toolbox creates a part with a single click without losing usable board space', () => {
@@ -158,7 +158,7 @@ test('Room restoration survives reload and workshop transitions, and undo remove
   }
   g.state.thanks = 400;
   assert(E.validate(g.state));
-  const load = () => session(new Map([['pochta-workshops-v20', JSON.stringify(g.state)]]));
+  const load = () => session(new Map([['pochta-workshops-v21', JSON.stringify(g.state)]]));
   const clearOne = () => {
     const cell = g.state.board.findIndex((x, i) => x?.snow && E.accessible(g.state, i));
     assert(cell >= 0); assert(g.act({ type: 'melt', cell }).ok); return cell;
@@ -213,7 +213,7 @@ test('Snow artwork distinguishes all three costs and clearance reveals one find 
   assert(g.act({ type: 'send', orderId: order.id }).ok);
   g.state.mail[0].dueAt = 1000000;
   assert(g.act({ type: 'claim', mailId: g.state.mail[0].id }).ok);
-  const s = session(new Map([['pochta-workshops-v20', JSON.stringify(g.state)]])), $ = id => s.doc.getElementById(id);
+  const s = session(new Map([['pochta-workshops-v21', JSON.stringify(g.state)]])), $ = id => s.doc.getElementById(id);
   for (const [cell, file, cost] of [['B4','loose',1],['D6','packed',2],['D9','ice',5]]) {
     const el = $('board').children[E.at(cell)]; assert.match(el.querySelector('img').src, new RegExp(file+'\\.webp$')); assert.equal(el.querySelector('.level').textContent, cost+'♡');
   }
@@ -239,8 +239,8 @@ test('Purple is the default; choosing green survives reload without touching gam
 
 test('High-level reward is visible in the letter and reply and can be claimed once', () => {
   const E=require('./engine.js'), g=new E.Game(undefined,()=>1000000,()=>.5), L=g.state.letters[0];
-  L.want=[E.item('tech',8)]; L.packed=[false]; L.protected=true; g.state.giftStore=JSON.parse(JSON.stringify(L.want));
-  const s=session(new Map([['pochta-workshops-v20',JSON.stringify(g.state)]])), $=id=>s.doc.getElementById(id);
+  L.storyId = null; L.want =[E.item('tech',8)]; L.packed=[false]; L.protected=true; g.state.giftStore=JSON.parse(JSON.stringify(L.want));
+  const s=session(new Map([['pochta-workshops-v21',JSON.stringify(g.state)]])), $=id=>s.doc.getElementById(id);
   $('letters').children[0].querySelector('button').click(); assert.match($('recipe-story').textContent,/4 ♡/);
   $('recipe-send').click(); assert.equal(s.state().thanks,0); s.advance(20000); $('mail-list').querySelector('button').click(); assert.match($('reply-claim').textContent,/4 ♡/);
   $('reply-claim').click(); assert.equal(s.state().thanks,4); assert.equal(session(s.storage).state().thanks,4);
@@ -248,9 +248,33 @@ test('High-level reward is visible in the letter and reply and can be claimed on
 
 test('The app imports v12 pending rewards and leaves its original save untouched', () => {
   const E=require('./engine.js'), g=new E.Game(undefined,()=>1000000,()=>.5), L=g.state.letters[0];
-  L.want=[E.item('tech',8)]; L.packed=[true]; assert(g.act({type:'send',orderId:L.id}).ok);
+  L.storyId = null; L.want =[E.item('tech',8)]; L.packed=[true]; assert(g.act({type:'send',orderId:L.id}).ok);
   const old=JSON.parse(JSON.stringify(g.state)); old.version=12; old.mail.forEach(m=>delete m.rewardThanks);
   const serialized=JSON.stringify(old), storage=new Map([['pochta-workshops-v12',serialized]]), upgraded=session(storage);
-  assert.equal(upgraded.state().version,20); assert.equal(upgraded.state().mail[0].rewardThanks,4); assert.equal(upgraded.state().energy,old.energy);
+  assert.equal(upgraded.state().version,21); assert.equal(upgraded.state().mail[0].rewardThanks,4); assert.equal(upgraded.state().energy,old.energy);
   assert.equal(storage.get('pochta-workshops-v12'),serialized);
+});
+
+test('Personal reply and one-time energy gift are visible, saved and do not overwrite the game', () => {
+  const E=require('./engine.js');let now=1000000;const g=new E.Game(undefined,()=>now,()=>.5);
+  for(let i=0;i<5;i++){const L=g.state.letters[0];L.packed=[true];assert(g.act({type:'send',orderId:L.id}).ok);now+=E.MAIL_MS;assert(g.act({type:'claim',mailId:g.state.mail.at(-1).id}).ok);}
+  g.state.energy=39;g.state.energyAt=1000000;
+  const s=session(new Map([['pochta-workshops-v21',JSON.stringify(g.state)]])), $=id=>s.doc.getElementById(id);
+  const button=$('energy-gifts').children[0].querySelector('button');assert(!button.disabled);assert.match(button.textContent,/5 ❄/);button.click();
+  assert.equal(s.state().energy,40);assert.deepEqual(s.state().energyGiftClaims,[5]);assert.equal(s.state().bag.find(t=>t.name==='Подарок снеговика').amount,4);
+  assert($('energy-gifts').children[0].querySelector('button').disabled);assert.deepEqual(session(s.storage).state().energyGiftClaims,[5]);
+  const personalSeed=new E.Game(undefined,()=>1000000,()=>.5); personalSeed.state.letters[0].protected=true;
+  const first=session(new Map([['pochta-workshops-v21',JSON.stringify(personalSeed.state)]])), get=id=>first.doc.getElementById(id);get('letters').children[0].querySelector('button').click();assert.match(get('recipe-story').textContent,/тоннель/);
+  get('recipe-items').querySelector('button').click();get('recipe-send').click();
+  first.advance(20000);get('mail-list').querySelector('button').click();
+  assert.equal(first.state().mail[0].outcome,'success');assert(get('reply-text').textContent.includes(E.PERSONAL_LETTERS[0].reply));
+});
+
+test('Desktop panels share a stable sidebar beside the workshop instead of individual grid rows', () => {
+  const s=session(), $=id=>s.doc.getElementById(id), sidebar=s.doc.querySelector('.sidebar'), left=s.doc.querySelector('.workshop-column');
+  assert(sidebar);assert(left);assert.equal(sidebar.parentElement,left.parentElement);assert(sidebar.parentElement.className.includes('game-layout'));
+  for(const id of ['energy-gifts','extra-panel','bag-panel','completion','speed'])assert.equal($(id).closest('.sidebar'),sidebar);
+  assert.equal($('goal-title').closest('.sidebar'),sidebar);assert.equal($('mail-list').closest('.sidebar'),sidebar);
+  assert.equal($('board').closest('.workshop-column'),left);assert.equal($('shift-title').closest('.workshop-column'),left);
+  assert(!$('recipe-dialog').closest('.sidebar'));
 });

@@ -1,13 +1,13 @@
 (function () {
   'use strict';
-  const E = window.PostGame, $ = id => document.getElementById(id), KEY = 'pochta-workshops-v20';
+  const E = window.PostGame, $ = id => document.getElementById(id), KEY = 'pochta-workshops-v21';
   let saved, loadMessage = '', storageFailed = false;
   try {
-    const raw = localStorage.getItem(KEY), old = raw ? null : localStorage.getItem('pochta-workshops-v12') || localStorage.getItem('pochta-workshops-v10') || localStorage.getItem('pochta-workshops-v9') || localStorage.getItem('pochta-workshops-v8');
+    const raw = localStorage.getItem(KEY), old = raw ? null : localStorage.getItem('pochta-workshops-v20') || localStorage.getItem('pochta-workshops-v12') || localStorage.getItem('pochta-workshops-v10') || localStorage.getItem('pochta-workshops-v9') || localStorage.getItem('pochta-workshops-v8');
     if (raw || old) {
       const parsed = JSON.parse(raw || old); saved = E.migrate(parsed);
       if (!saved) { saved = undefined; loadMessage = 'Сохранение не удалось прочитать. Начинаем заново.'; }
-      else if (old) loadMessage = 'Прогресс перенесён. За подарки уровней 6 / 7 / 8 теперь придёт 2 / 3 / 4 спасибо.';
+      else if (old) loadMessage = 'Прогресс перенесён. Теперь на верёвке три вида просьб. Прежние письма и упакованные подарки сохранены в дополнительных.';
     }
   }
   catch (_) { loadMessage = 'Хранилище недоступно: прогресс может не сохраниться.'; }
@@ -107,20 +107,21 @@
     x.prepend(spriteIcon('part', p.chain, p.level, E.CHAINS[p.chain].icon));
     x.style.setProperty('--part-color', E.CHAINS[p.chain].color); x.title = E.label(p); x.setAttribute('aria-label', E.label(p) + ', уровень ' + p.level + (available ? ': готово' : '')); return x;
   }
+  const tierLabel = L => ({easy:'Простая', medium:'Средняя', hard:'Сложная', legacy:'Прежняя', found:'Найденная'}[L.difficulty] || 'Просьба');
   function renderLetter(L, pinned = false) {
     if (pinned) {
       const ready = E.canSend(game.state, L.id);
       const card = node('article', 'pinned-letter' + (ready ? ' gift-ready' : ''));
       const open = button('', () => showRecipe(L.id), 'envelope-open'); open.dataset.order = L.id;
       open.setAttribute('aria-label', 'Письмо: ' + L.who + '. ' + L.want.map(E.giftName).join(', ') + (ready ? '. Подарки готовы к отправке.' : '. Открыть просьбу и рецепт.'));
-      open.append(node('span', 'envelope-sender', L.who.split(',')[0]));
+      open.append(node('small', 'envelope-tier ' + L.difficulty, tierLabel(L)), node('span', 'envelope-sender', L.who.split(',')[0]));
       const gifts = node('span', 'envelope-gifts');
       L.want.forEach(g => gifts.append(spriteIcon('gift', g.chain, g.level, E.CHAINS[g.chain].icons[g.level - 1])));
       open.append(gifts, node('span', 'envelope-status', (ready ? '✓ Отправить' : 'Прочитать') + ' · ' + E.orderThanks(L) + ' ♡'));
       card.append(open); return card;
     }
     const card = node('article', 'letter' + (L.retry ? ' retry' : ''));
-    card.append(node('h3', '', L.who), node('small', 'letter-kind', L.retry ? 'Повторная · точно дойдёт' : L.side ? 'Письмо из сугроба' : 'Детское письмо'));
+    card.append(node('h3', '', L.who), node('small', 'letter-kind', L.retry ? 'Повторная · точно дойдёт' : L.side ? 'Письмо из сугроба' : tierLabel(L) + ' просьба'));
     const wants = node('div', 'gift-list');
     const availableGifts = E.countGifts(game.state);
     L.want.forEach((g, n) => {
@@ -134,6 +135,17 @@
     b.dataset.order = L.id; card.append(b);
     if (ready) card.append(button('Рецепт и упаковка', () => showRecipe(L.id), 'packing-link'));
     return card;
+  }
+  function renderEnergyGifts() {
+    const s = game.state, done = E.completedLetters(s), fragment = document.createDocumentFragment();
+    E.ENERGY_GIFTS.forEach(g => {
+      const claimed = s.energyGiftClaims.includes(g.threshold), ready = done >= g.threshold && !claimed;
+      const box = node('div', 'energy-gift' + (ready ? ' ready' : ''));
+      box.append(node('strong', '', (g.threshold === 5 ? '☃ ' : '🫖 ') + g.name), node('small', '', Math.min(done, g.threshold) + ' / ' + g.threshold + ' успешных писем'));
+      const b = button(claimed ? '✓ Получен' : ready ? 'Забрать ' + g.amount + ' ❄' : '+' + g.amount + ' ❄', () => execute({type:'energyGift', threshold:g.threshold}));
+      b.disabled = !ready; box.append(b); fragment.append(box);
+    });
+    $('energy-gifts').replaceChildren(fragment);
   }
   function updateEnergy() {
     const s = game.state;
@@ -208,7 +220,7 @@
     $('shift-number').textContent = 'МАСТЕРСКАЯ ' + (s.shift + 1) + ' ИЗ 3'; $('shift-title').textContent = def.title;
     $('progress').textContent = 'Отправлено: ' + s.mail.filter(m => m.shift === s.shift).length;
     $('album-count').textContent = s.mail.filter(m => m.claimed).length;
-    updateEnergy(); updateMailbox(true);
+    updateEnergy(); updateMailbox(true); renderEnergyGifts();
     const parts = E.parts(s), project = document.createDocumentFragment();
     $('goal-title').textContent = def.goal;
     parts.forEach(p => { const chip = node('span', 'project-part' + (p.found ? ' found' : ''), (p.found ? '✓ ' : '○ ') + p.name); chip.title = p.found ? 'Найдено' : 'Под снегом ' + E.coord(p.cell) + ' · ' + E.SNOW[p.snow].cost + ' ♡'; project.append(chip); });
@@ -336,7 +348,7 @@
   function renderRecipe() {
     const s = game.state, L = E.findOrder(s, currentOrder);
     if (!L) { if ($('recipe-dialog').open) $('recipe-dialog').close(); return; }
-    $('recipe-title').textContent = L.who + (L.retry ? ' · повторная посылка' : ' · подарок'); $('recipe-story').textContent = '«' + L.text + '» · За успешный ответ: ' + E.orderThanks(L) + ' ♡.';
+    $('recipe-title').textContent = L.who + (L.retry ? ' · повторная посылка' : ' · ' + tierLabel(L).toLowerCase() + ' просьба'); $('recipe-story').textContent = '«' + L.text + '» · За успешный ответ: ' + E.orderThanks(L) + ' ♡.';
     const items = document.createDocumentFragment();
     const availableGifts = E.countGifts(s);
     L.want.forEach((g, i) => {
@@ -365,8 +377,8 @@
     const m = game.state.mail.find(m => m.id === id); if (!m || m.claimed || m.dueAt > Date.now()) return;
     currentMail = id;
     $('reply-title').textContent = m.outcome === 'success' ? 'Ответ от ' + m.order.who : 'Извещение о посылке · ' + m.order.who;
-    $('reply-text').textContent = m.outcome === 'success' ? '«Подарок приехал! Спасибо, Дедушка! Мы уже придумали, как будем с ним играть. А это я нарисовал вашу почту». ' + (m.attempt === 2 ? 'Повторная посылка дошла.' : '') : m.outcome === 'lost' ? 'Снеговик: «Посылка затерялась в дороге. Мне очень жаль. Давай соберём её ещё раз — повторную точно доставим». Сердечко придёт после повторной доставки.' : 'Снеговик: «Подарок повредился по дороге. За эту доставку нет сердечка. Надёжная упаковка поможет избежать такого в будущем». Письмо закроется, можно продолжать новые заказы.';
-    $('reply-drawing').hidden = m.outcome !== 'success'; $('reply-claim').textContent = m.outcome === 'success' ? 'Забрать спасибо · +' + m.rewardThanks + ' ♡' + (m.bonusEnergy ? ' и 1 ❄' : '') : m.outcome === 'lost' ? 'Получить повторный заказ' : 'Прочитано · без сердечка';
+    $('reply-text').textContent = m.outcome === 'success' ? '«' + (m.order.replyText || 'Подарок приехал! Спасибо, Дедушка! Мы уже придумали, как будем с ним играть.') + '» ' + (m.attempt === 2 ? 'Повторная посылка дошла.' : '') : m.outcome === 'lost' ? 'Снеговик: «Посылка затерялась в дороге. Мне очень жаль. Давай соберём её ещё раз — повторную точно доставим». Сердечко придёт после повторной доставки.' : 'Снеговик: «Подарок повредился по дороге. За эту доставку нет сердечка. Надёжная упаковка поможет избежать такого в будущем». Письмо закроется, можно продолжать новые заказы.';
+    $('reply-drawing').hidden = m.outcome !== 'success' || !!m.order.storyId; $('reply-claim').textContent = m.outcome === 'success' ? 'Забрать спасибо · +' + m.rewardThanks + ' ♡' + (m.bonusEnergy ? ' и 1 ❄' : '') : m.outcome === 'lost' ? 'Получить повторный заказ' : 'Прочитано · без сердечка';
     if (!$('reply-dialog').open) $('reply-dialog').showModal();
   }
   function showAlbum() {
@@ -378,6 +390,7 @@
     if (!s.mail.length) body.append(node('p', '', 'Первой посылке ещё предстоит отправиться в путь.'));
     [...s.mail].reverse().forEach(m => {
       const row = node('article', 'album-entry'); row.append(node('b', '', m.order.who + (m.attempt === 2 ? ' · повторная' : '')), node('p', '', m.order.want.map(E.giftName).join(' + ')));
+      if (m.claimed && m.outcome === 'success' && m.order.replyText) row.append(node('p', 'personal-reply', '«' + m.order.replyText + '»'));
       if (m.claimed) row.append(node('p', '', m.outcome === 'success' ? '✓ Ответ получен · +' + m.rewardThanks + ' ♡' : m.outcome === 'lost' ? 'Посылка потерялась · добавлен повторный заказ' : 'Повреждено · без сердечка'));
       else if (m.dueAt <= Date.now()) row.append(button('Открыть ответ', () => showReply(m.id), 'primary'));
       else row.append(node('p', '', 'Посылка в пути'));

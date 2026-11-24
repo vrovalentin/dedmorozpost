@@ -3,7 +3,7 @@
   'use strict';
   const C = typeof module !== 'undefined' && module.exports ? require('./content.js') : root.PostContent;
   const { CHAINS, RECIPES, SNOW, SHIFTS, CACHES, at, coord, makeBoard, item } = C;
-  const VERSION = 20, MAX_ENERGY = 40, REGEN_MS = 30000, MAIL_MS = 20000;
+  const VERSION = 21, MAX_ENERGY = 40, REGEN_MS = 30000, MAIL_MS = 20000;
   const clone = x => JSON.parse(JSON.stringify(x));
   const key = x => x.chain + ':' + x.level;
   const isItem = x => !!x && Object.hasOwn(CHAINS, x.chain) && Number.isInteger(x.level) && x.level >= 1 && x.level <= 8;
@@ -79,26 +79,40 @@
   function rates(s) { return { lost: .2, damaged: s.built.includes(2) ? .05 : .1 }; }
   const giftThanks = gift => Math.max(1, gift.level - 4);
   const orderThanks = order => order.want.reduce((sum, gift) => sum + giftThanks(gift), 0);
-  function newLetter(s, side = false) {
-    const chains = Object.values(SHIFTS[s.shift].generators);
-    const sequence = s.issued++;
-    // Introduce the newly available workshop first, then alternate all available ones.
-    const chain = chains[(sequence + chains.length - 1) % chains.length];
-    const issued = s.chainIssued[chain]++;
-    const rank = Math.min(8, 2 + Math.floor(issued / 6));
-    const level = issued === 0 ? 1 : issued % 4 === 0 ? 1 + (Math.floor(issued / 4) % 2) : issued % 3 === 1 ? rank : Math.max(1, rank - 1);
+  const ORDER_TIERS = ['easy', 'medium', 'hard'];
+  const ENERGY_GIFTS = [
+    { threshold: 5, amount: 5, name: 'Подарок снеговика' },
+    { threshold: 10, amount: 10, name: 'Термос Снегурочки' }
+  ];
+  const completedLetters = s => new Set(s.mail.filter(m => m.claimed && m.outcome === 'success').map(m => m.order.id)).size;
+  function newLetter(s, side = false, difficulty = 'easy') {
+    const chains = Object.values(SHIFTS[s.shift].generators), sequence = s.issued++;
+    const chain = chains[(sequence + chains.length - 1) % chains.length], issued = s.chainIssued[chain]++;
+    const hardSent = s.mail.filter(m => m.attempt === 1 && m.order.difficulty === 'hard' && m.order.want[0].chain === chain).length;
+    const cap = Math.min(8, Math.max(3, s.unlocked[chain], 3 + Math.floor(hardSent / 2)));
+    const level = side || difficulty === 'easy' ? 1 + issued % 2 : difficulty === 'medium' ? Math.min(5, Math.max(2, cap - 1)) : cap;
     s.unlocked[chain] = Math.max(s.unlocked[chain], level);
     const names = ['Миша', 'Аня', 'Тимофей', 'Вера', 'Соня', 'Лёва', 'Маша', 'Егор', 'Лиза', 'Тимур'];
-    const who = names[(s.nextId - 1) % names.length], want = [item(chain, level)];
-    if (sequence > 5 && sequence % 7 === 0 && chains.length > 1) want.push(item(chains[0], 1));
-    const story = ['Очень жду подарок. Уже придумал, как буду с ним играть!', 'Можно подарок для наших домашних приключений?', 'Обещаю прислать тебе рисунок. Спасибо, что читаешь моё письмо!'][sequence % 3];
-    return { id: s.nextId++, who, text: side ? 'Моё письмо, кажется, потерялось в сугробе. Как здорово, что вы его нашли!' : story, want, packed: want.map(() => false), protected: false, retry: false, side };
+    const history = [...orderList(s), ...s.mail.map(m => m.order)];
+    const used = new Set(history.map(L => L.storyId).filter(Boolean));
+    const activeStories = new Set([...orderList(s), ...s.mail.filter(m => !m.claimed).map(m => m.order)].map(L => L.storyId).filter(Boolean));
+    const lastSeen = id => Math.max(0, ...history.filter(L => L.storyId === id).map(L => L.id));
+    const want = [item(chain, level)];
+    if (!side && difficulty === 'hard' && chains.length > 1 && sequence % 7 === 0) want.push(item(chains.find(c => c !== chain), 1));
+    const candidates = want.length === 1 ? C.PERSONAL_LETTERS.filter(x => x.chain === chain && x.level === level) : [];
+    const story = candidates.find(x => !used.has(x.id)) || candidates.filter(x => !activeStories.has(x.id) && lastSeen(x.id) <= s.nextId - 6).sort((a,b) => lastSeen(a.id) - lastSeen(b.id))[0];
+    const age = story?.age || level + 4;
+    const ageGroup = level <= 2 ? '5–6' : level <= 5 ? '7–9' : '10–12';
+    return { id: s.nextId++, who: story?.who || names[(s.nextId - 2) % names.length] + ', ' + age + ' лет', age, ageGroup,
+      text: story?.request || (side ? 'Моё письмо потерялось в сугробе. Как здорово, что вы его нашли!' : 'Дедушка Мороз, подари, пожалуйста, этот подарок. У меня уже есть идеи для игр с ним. Спасибо, что прочитал моё письмо!'),
+      replyText: story?.reply || 'Подарок приехал! Спасибо, Дедушка! Мы уже придумали, как будем с ним играть.', storyId: story?.id || null,
+      difficulty: side ? 'found' : difficulty, want, packed: [false], protected: false, retry: false, side };
   }
   function fresh(now = Date.now()) {
-    const s = { version: VERSION, shift: 0, board: makeBoard(0), giftStore: [], letters: [], extra: [], mail: [], cleared: [], bag: [], decor: [], postcards: [], built: [], thanks: 0,
+    const s = { version: VERSION, energyGiftClaims: [], shift: 0, board: makeBoard(0), giftStore: [], letters: [], extra: [], mail: [], cleared: [], bag: [], decor: [], postcards: [], built: [], thanks: 0,
       energy: MAX_ENERGY, energyAt: now, speed: 1, issued: 0, nextId: 1, nextMailId: 1, nextToolId: 1, moves: 0,
       unlocked: { tech: 1, sew: 1, art: 1 }, chainIssued: { tech: 0, sew: 0, art: 0 }, rng: ((Math.floor(Math.random() * 0xffffffff) ^ now) >>> 0) || 1 };
-    for (let i = 0; i < 3; i++) s.letters.push(newLetter(s));
+    for (const tier of ORDER_TIERS) s.letters.push(newLetter(s, false, tier));
     return s;
   }
   function validate(s) {
@@ -106,12 +120,13 @@
       if (!s || s.version !== VERSION || !Number.isInteger(s.shift) || !SHIFTS[s.shift]) return false;
       for (const k of ['energy', 'thanks', 'issued', 'nextId', 'nextMailId', 'nextToolId', 'moves', 'rng']) if (!Number.isInteger(s[k]) || s[k] < 0) return false;
       if (!s.nextId || !s.nextMailId || !s.nextToolId || !s.rng || s.rng > 0xffffffff || s.energy > MAX_ENERGY || ![1, 10].includes(s.speed) || !Number.isFinite(s.energyAt) || s.energyAt < 0) return false;
-      for (const k of ['board', 'giftStore', 'letters', 'extra', 'mail', 'cleared', 'bag', 'decor', 'postcards', 'built']) if (!Array.isArray(s[k])) return false;
-      if (s.board.length !== 63 || s.letters.length !== 3) return false;
+      for (const k of ['energyGiftClaims', 'board', 'giftStore', 'letters', 'extra', 'mail', 'cleared', 'bag', 'decor', 'postcards', 'built']) if (!Array.isArray(s[k])) return false;
+      if (s.board.length !== 63 || s.letters.length !== 3 || ORDER_TIERS.some(tier => s.letters.filter(L => L?.difficulty === tier).length !== 1)) return false;
+      if (new Set(s.energyGiftClaims).size !== s.energyGiftClaims.length || !s.energyGiftClaims.every(n => ENERGY_GIFTS.some(g => g.threshold === n) && completedLetters(s) >= n)) return false;
       const allowed = Object.values(SHIFTS[s.shift].generators);
       if (!s.giftStore.every(g => isItem(g) && Object.keys(g).length === 2 && allowed.includes(g.chain))) return false;
       for (const c of Object.keys(CHAINS)) if (!Number.isInteger(s.unlocked?.[c]) || s.unlocked[c] < 1 || s.unlocked[c] > 8 || !Number.isInteger(s.chainIssued?.[c]) || s.chainIssued[c] < 0) return false;
-      const validOrder = L => L && Number.isInteger(L.id) && L.id > 0 && L.id < s.nextId && typeof L.who === 'string' && typeof L.text === 'string' && Array.isArray(L.want) && L.want.length > 0 && L.want.length <= 2 && L.want.every(g => isItem(g) && allowed.includes(g.chain)) && Array.isArray(L.packed) && L.packed.length === L.want.length && L.packed.every(x => typeof x === 'boolean') && typeof L.protected === 'boolean' && typeof L.retry === 'boolean';
+      const validOrder = L => L && Number.isInteger(L.id) && L.id > 0 && L.id < s.nextId && typeof L.who === 'string' && typeof L.text === 'string' && Array.isArray(L.want) && L.want.length > 0 && L.want.length <= 2 && L.want.every(g => isItem(g) && allowed.includes(g.chain)) && Array.isArray(L.packed) && L.packed.length === L.want.length && L.packed.every(x => typeof x === 'boolean') && typeof L.protected === 'boolean' && typeof L.retry === 'boolean' && [...ORDER_TIERS, 'legacy', 'found'].includes(L.difficulty) && (L.replyText === undefined || typeof L.replyText === 'string') && (L.storyId == null || [...C.PERSONAL_LETTERS, ...C.LEGACY_PERSONAL_LETTERS].some(p => p.id === L.storyId && L.want.length === 1 && p.chain === L.want[0].chain && p.level === L.want[0].level));
       if (!orderList(s).every(validOrder) || new Set(orderList(s).map(L => L.id)).size !== orderList(s).length) return false;
       const ids = new Set();
       for (const m of s.mail) {
@@ -155,15 +170,21 @@
     } catch (_) { return false; }
   }
   function migrate(saved) {
-    if ([8, 9, 10, 12].includes(saved?.version)) {
-      if (!Array.isArray(saved.mail) || !Number.isInteger(saved.energy)) return null;
-      const candidate = { ...clone(saved), version: VERSION, giftStore: saved.giftStore || [], energy: Math.min(MAX_ENERGY, saved.energy + (saved.version === 12 ? 0 : saved.version === 10 ? 10 : 20)) };
-      if (candidate.mail.some(m => !m || !Array.isArray(m.order?.want) || !m.order.want.every(isItem))) return null;
-      candidate.mail.forEach(m => { m.rewardThanks = m.claimed ? 1 : orderThanks(m.order); });
-      if (saved.version < 10) candidate.mail.forEach(m => { m.bonusEnergy = 0; });
-      return validate(candidate) ? candidate : null;
-    }
-    return validate(saved) ? saved : null;
+    try {
+      if ([8, 9, 10, 12, 20].includes(saved?.version)) {
+        if (!Array.isArray(saved.mail) || !Array.isArray(saved.letters) || saved.letters.length !== 3 || !Array.isArray(saved.extra) || !Number.isInteger(saved.energy)) return null;
+        const candidate = { ...clone(saved), version: VERSION, energyGiftClaims: [], giftStore: saved.giftStore || [], energy: Math.min(MAX_ENERGY, saved.energy + (saved.version >= 12 ? 0 : saved.version === 10 ? 10 : 20)) };
+        if (candidate.mail.some(m => !m || !Array.isArray(m.order?.want) || !m.order.want.every(isItem))) return null;
+        if (saved.version < 20) candidate.mail.forEach(m => { m.rewardThanks = m.claimed ? 1 : orderThanks(m.order); });
+        if (saved.version < 10) candidate.mail.forEach(m => { m.bonusEnergy = 0; });
+        [...orderList(candidate), ...candidate.mail.map(m => m.order)].forEach(L => { L.difficulty = L.difficulty || 'legacy'; });
+        // Keep every old request (including packed gifts) in additional mail.
+        candidate.extra.push(...candidate.letters); candidate.letters = [];
+        for (const tier of ORDER_TIERS) candidate.letters.push(newLetter(candidate, false, tier));
+        return validate(candidate) ? candidate : null;
+      }
+      return validate(saved) ? saved : null;
+    } catch (_) { return null; }
   }
   class Game {
     constructor(saved, now = () => Date.now(), random = null) { this.now = now; this.random = random; const restored = migrate(saved); this.state = restored ? clone(restored) : fresh(now()); this.history = []; this.regen(); }
@@ -265,7 +286,7 @@
         const outcome = roll < success ? 'success' : roll < success + chance.lost ? 'lost' : 'damaged';
         s.mail.push({ id: s.nextMailId++, order: clone(L), attempt: L.retry ? 2 : 1, rewardThanks: orderThanks(L), outcome, bonusEnergy: outcome === 'success' && this.roll() < .2 ? 1 : 0, dueAt: this.now() + MAIL_MS / s.speed, claimed: false, shift: s.shift });
         const normal = s.letters.findIndex(x => x.id === L.id);
-        if (normal >= 0) s.letters[normal] = newLetter(s); else s.extra.splice(s.extra.findIndex(x => x.id === L.id), 1);
+        if (normal >= 0) s.letters[normal] = newLetter(s, false, L.difficulty); else s.extra.splice(s.extra.findIndex(x => x.id === L.id), 1);
         s.moves++;
         return ok('Посылка для ' + L.who + ' в пути. Сердечко придёт только с успешным ответом.');
       }
@@ -301,6 +322,15 @@
         }
         if (loot.kind === 'letter') s.extra.push(newLetter(s, true));
         return ok('Под снегом: ' + loot.name + (loot.kind === 'part' ? '! Часть заняла место в проекте мастерской.' : '! Находка сохранена.'), a.cell);
+      }
+      if (a.type === 'energyGift') {
+        const gift = ENERGY_GIFTS.find(g => g.threshold === a.threshold);
+        if (!gift || completedLetters(s) < gift.threshold || s.energyGiftClaims.includes(gift.threshold)) return fail('Подарок пока не готов или уже получен.');
+        this.remember(); s.energyGiftClaims.push(gift.threshold);
+        const gain = Math.min(MAX_ENERGY - s.energy, gift.amount), remaining = gift.amount - gain;
+        s.energy += gain; if (s.energy === MAX_ENERGY) s.energyAt = this.now();
+        if (remaining) s.bag.push({ id: s.nextToolId++, kind: 'energy', name: gift.name, amount: remaining });
+        return ok(gift.name + ': ' + gift.amount + ' снежинок.' + (remaining ? ' Остаток сохранён в находках.' : ''));
       }
       if (a.type === 'energy') {
         const i = s.bag.findIndex(x => x.id === a.toolId && x.kind === 'energy');
@@ -341,6 +371,6 @@
       return ok(y ? 'Поменяли запчасти местами.' : 'Переместили запчасть.', to);
     }
   }
-  const api = { ...C, VERSION, MAX_ENERGY, REGEN_MS, MAIL_MS, Game, fresh, validate, migrate, isItem, isGift, isAssembly, isMovable, cellName, combine, countGifts, giftThanks, orderThanks, label, giftName, key, recipe, count, canCraft, canSend, findOrder, orderList, neighbors, accessible, parts, complete, cacheAt, isCleared, rates };
+  const api = { ...C, VERSION, MAX_ENERGY, REGEN_MS, MAIL_MS, Game, fresh, validate, migrate, isItem, isGift, isAssembly, isMovable, cellName, combine, countGifts, ORDER_TIERS, ENERGY_GIFTS, completedLetters, giftThanks, orderThanks, label, giftName, key, recipe, count, canCraft, canSend, findOrder, orderList, neighbors, accessible, parts, complete, cacheAt, isCleared, rates };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.PostGame = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
