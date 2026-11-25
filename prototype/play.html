@@ -136,9 +136,36 @@ dialog button:focus-visible{outline:3px solid #b49bd5;outline-offset:3px}
 dialog button:disabled{background:#e3d7f1;color:#78618e;opacity:1;cursor:default;box-shadow:none}
 dialog .gift-recipe{border-color:#e8e5ed}dialog .dialog-heading button{background:#6c3bb2;color:#fff}dialog .dialog-heading button:hover{background:#593092}
 dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{border-color:#e8e5ed}dialog .part-chip{background:#fff}dialog .part-chip.available{background:#edf4eb}
+
+.envelope-tier.choice-mark,.order-mark{background:#552881;color:#fff;border:1px solid #7c48a6}
+.envelope-tier.choice-mark{font-size:clamp(6px,1.2vw,9px);white-space:nowrap}
+.choice-symbol{font-weight:800;color:#552881;font-size:1.4em}
+.special-letter{border:2px solid #b592dc}
+.order-mark{align-self:flex-start;padding:4px 7px;border-radius:5px;font-size:11px;font-weight:700}
+.choice-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(155px,100%),1fr));gap:8px;margin-bottom:12px}
+.choice-option{border:1px solid #ded0eb;border-radius:8px;padding:8px}
+.choice-option button{width:100%}
+.choice-option p{font-size:12px;margin:6px 0 0}
+.tabletop-board>.cell.rare-part{outline:2px solid #8b3ac3;outline-offset:-2px}
+.cell.rare-part .part-letter{background:#552881;color:#fff}
+#special-letters .letter{color:var(--ink)}
+#special-letters .letter:before{content:none}
+#special-letters .letter button{background:#552881;color:#fff;box-shadow:none}
+
+.heading{flex-wrap:wrap}
+.heading-actions{display:flex;align-items:center;gap:9px}
+.heading-actions .restart-button{min-height:40px;padding:6px 11px;background:#ffffff12;border:1px solid #e9dafa70;color:#fff;border-radius:8px;white-space:nowrap;font-size:12px}
+
+.merge-confirmation{position:fixed;z-index:40;width:max-content;max-width:min(300px,calc(100vw - 16px));padding:12px;background:#fff;color:#302341;border:1px solid #b898d8;border-radius:10px;box-shadow:0 5px 20px #24153755}
+.merge-confirmation[hidden]{display:none}
+.merge-confirmation p{font-size:13px;margin:0 0 9px}
+.merge-confirmation-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:6px}
+.merge-confirmation-actions button{min-height:40px;font-size:12px;background:#eee4f7;color:#4d2b70}
+.merge-confirmation-actions .primary{background:#552881;color:#fff;box-shadow:none}
+.tabletop-board>.cell.merge-pending{outline:2px solid #7435a7;outline-offset:-2px}
 </style></head>
 <body data-theme="purple"><main class="app layout-fixed">
-<header class="heading"><div><p class="eyebrow">МАЛЕНЬКАЯ ПОЧТА · БОЛЬШИЕ ЖЕЛАНИЯ</p><h1>Почта Деда Мороза</h1></div><button id="album-open" class="album-button" aria-label="Открыть альбом">✉ <span id="album-count">0</span></button></header>
+<header class="heading"><div><p class="eyebrow">МАЛЕНЬКАЯ ПОЧТА · БОЛЬШИЕ ЖЕЛАНИЯ</p><h1>Почта Деда Мороза</h1></div><div class="heading-actions"><button type="button" id="restart" class="restart-button">Начать сначала</button><button id="album-open" class="album-button" aria-label="Открыть альбом">✉ <span id="album-count">0</span></button></div></header>
 <section class="resources" aria-label="Ресурсы"><div class="resource energy">❄ <strong id="energy"></strong><small id="energy-timer"></small></div><div class="resource gratitude">♡ <strong id="thanks">0</strong><small>спасибо из ответных писем</small></div></section>
 <div class="game-layout">
 <div class="workshop-column">
@@ -160,7 +187,7 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
 <div id="snow-legend" class="snow-legend" aria-label="Виды снега и цена расчистки"></div>
 <details class="restoration-notes"><summary><strong id="room-progress"></strong></summary><div class="room"><span id="room-state"></span></div><div class="room-restoration"><span id="room-next"></span></div><div id="room-decor" class="room-decor" aria-label="Найденные украшения"></div></details>
 </section>
-<section class="guide"><p id="tip" role="status" aria-live="polite"></p><button id="confirm-merge" hidden>Всё равно слить</button></section>
+<section class="guide"><p id="tip" role="status" aria-live="polite"></p></section>
 <section id="find-feedback" class="find-feedback" role="status" hidden><strong id="find-title"></strong><p id="find-description"></p></section>
 <section id="snow-panel" class="snow-panel" hidden><span id="snow-preview" class="snow-preview" aria-hidden="true"></span><h3 id="snow-title"></h3><p id="snow-description"></p><button id="melt" class="primary"></button><small id="snow-balance"></small></section>
 </div>
@@ -168,24 +195,29 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
 <section class="goal"><div><span class="eyebrow">ЦЕЛЬ МАСТЕРСКОЙ</span><h3 id="goal-title"></h3><div id="goal-parts" class="part-project"></div></div><strong id="goal-progress"></strong></section>
 <section id="energy-gifts" class="energy-gifts" aria-label="Подарки за успешные письма"></section>
 <section class="mailbox"><div class="mailbox-heading"><h3>📬 Ответная почта</h3><small id="delivery-rates"></small></div><p id="mail-summary"></p><div id="mail-list"></div></section>
+<section id="special-letters" aria-label="Особые посылки" hidden></section>
 <details id="extra-panel" class="extra-panel" hidden open><summary id="extra-summary"></summary><div id="extra-letters" class="letters"></div></details>
 <section id="completion" class="completion" hidden><span class="eyebrow">ЧЕТЫРЕ ЧАСТИ НАЙДЕНЫ</span><h2 id="completion-title"></h2><p id="completion-text"></p><button id="build" class="primary">Собрать мастерскую</button><button id="next" class="primary" hidden></button></section>
 <details id="bag-panel" class="bag-panel" open><summary>🎒 Находки и инструменты <span id="bag-count">0</span></summary><div id="bag-items"></div></details>
-<nav class="tools"><button id="undo">↶ Отменить ход</button><button id="help">Как играть</button><button id="restart">Заново</button></nav>
+<nav class="tools"><button id="undo">↶ Отменить ход</button><button id="help">Как играть</button></nav>
 <button id="speed" class="speed-control">Быстрый тест ×10: выключен</button>
 <details class="appearance"><summary>Цвет фона</summary><div class="theme-options" role="group" aria-label="Выбрать цвет фона"><button id="theme-blue" class="theme-choice blue" aria-pressed="false">Синий</button><button id="theme-purple" class="theme-choice purple" aria-pressed="false">Фиолетовый</button><button id="theme-green" class="theme-choice green" aria-pressed="false">Зелёный · исходный</button></div></details>
 <details class="chains"><summary>Запчасти, подарки и рост генераторов</summary><div id="catalog"></div></details>
 <p id="save-status" class="save-status"></p>
-<footer>Сказочная почта · белые окна и боковая панель · v23</footer>
+<footer>Сказочная почта · у игрового стола · v26</footer>
 </aside>
 </div>
 </main>
+<section id="merge-confirmation" class="merge-confirmation" role="dialog" aria-labelledby="merge-message" hidden>
+  <p id="merge-message"></p>
+  <div class="merge-confirmation-actions"><button id="cancel-merge" type="button">Отмена</button><button id="confirm-merge" type="button" class="primary">Всё равно слить</button></div>
+</section>
 <dialog id="recipe-dialog" aria-labelledby="recipe-title"><div class="dialog-heading"><h2 id="recipe-title">Собрать подарок</h2><button id="recipe-close" aria-label="Закрыть рецепт">✕</button></div><p id="recipe-story"></p><div id="recipe-items"></div><div id="recipe-protection"></div><button id="recipe-send" class="primary">Отправить посылку</button></dialog>
 <dialog id="album-dialog" aria-labelledby="album-title"><div class="dialog-heading"><h2 id="album-title">Альбом нашей почты</h2><button id="album-close" aria-label="Закрыть альбом">✕</button></div><div id="album-body"></div></dialog>
 <dialog id="reply-dialog" aria-labelledby="reply-title"><div class="dialog-heading"><h2 id="reply-title">Ответное письмо</h2><button id="reply-close" aria-label="Закрыть ответ">✕</button></div><p id="reply-text"></p><svg id="reply-drawing" class="drawing" viewBox="0 0 320 170" role="img" aria-label="Детский рисунок: домик почты, снеговик и сердце"><rect width="320" height="170" rx="12" fill="#fff9e9"/><g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><path d="M18 149 Q92 137 159 148 T302 146" stroke="#99c6d4"/><path d="M65 137V78L170 80V137M52 79L117 28 185 80" stroke="#bc7353"/><path d="M85 92H108V114H85ZM131 137V105H151V137" stroke="#4c9a9e"/><path d="M225 57C200 39 192 64 225 83 258 63 247 40 225 57Z" stroke="#d76b6b"/><circle cx="239" cy="125" r="20" stroke="#99baca"/><circle cx="239" cy="98" r="12" stroke="#99baca"/><path d="M232 102Q239 109 246 102M226 111L253 113" stroke="#578e8a"/></g><circle cx="235" cy="96" r="1.8" fill="#5d5146"/><circle cx="243" cy="96" r="1.8" fill="#5d5146"/></svg><button id="reply-claim" class="primary"></button></dialog>
 <dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-heading"><h2 id="help-title">Как работает почта</h2><button id="help-close" aria-label="Закрыть помощь">✕</button></div>
 <p><b>Запчасти и подарки.</b> Генератор — ящик инструментов на верхнем краю стола. После открытия новых производств выбери тип деталей под столом. Нажми на ящик: получишь запчасть за одну снежинку. Сливай одинаковые: 2 → 1 следующего уровня. Ранг указан цифрой. Техника — синие детали, швейная — розовые, творчество — зелёные.</p><p><b>Сборка на поле.</b> Две одинаковые детали повышают уровень. Разные детали из рецепта превращаются в готовый подарок на клетке. Для рецептов 7-го и 8-го уровня начни со старшей детали и добавляй остальные в незавершённую сборку 🛠. Сборку и готовый подарок можно разобрать кнопкой под столом без потери деталей, если на поле хватает места. Подарок можно передвигать; подходящее письмо получит кнопку «Отправить».</p><p><b>Письма.</b> Нажми на крупный конверт на верёвке: просьба и рецепт откроются поверх комнаты. Даже готовая посылка отправляется из открытого письма.</p><p><b>Рецепты.</b> Открой письмо. Собери запчасти нужных уровней, нажми «Собрать подарок», затем «Отправить». Собранный этой кнопкой подарок лежит на полке письма и не занимает клетку стола. Готовый подарок с поля также подходит для отправки.</p><p><b>Три просьбы.</b> На верёвке всегда простая, средняя и сложная просьба. Новое письмо занимает ту же категорию. Первые сложные просят подарок уровня 3; дальше их уровень растёт отдельно для каждого производства.</p><p><b>Подарки друзей.</b> После 5 успешных ответов снеговик дарит 5 снежинок, после 10 Снегурочка приносит термос на 10. Каждый подарок можно получить один раз за прохождение. Потерянная посылка считается после успешной повторной доставки, повреждённая не считается. Лишние снежинки сохраняются в находках.</p><p><b>Ответы.</b> Через 20 секунд приходит извещение. Открой его: 70% первых посылок доходят, 20% теряются, 10% повреждаются. За успешно доставленный подарок уровней 1–5 приходит 1 ♡, уровня 6 — 2 ♡, 7 — 3 ♡, 8 — 4 ♡. Награды подарков в одном письме складываются; с шансом 20% в нём будет ещё 1 ❄. При полном запасе снежинка сохраняется в находках. Потерянный подарок надо собрать повторно — повторная отправка гарантированно дойдёт. Надёжная бирка защищает первую отправку.</p><p><b>Снег.</b> Расчищается за 1 / 2 / 5 ♡ только рядом с открытым участком, по четырём сторонам. Слияния снег не трогают. Под ним четыре части мастерской, энергия, ножницы, бирки, украшения, открытки и письма. Последняя часть — под дальним льдом.</p><p><b>Инструменты.</b> Мешочек можно открыть позже, остаток не пропадает. Для ножниц выбери запчасть и нажми инструмент; нужна ещё одна пустая клетка. Находки не занимают рабочий стол.</p><p><b>Развитие.</b> Найди четыре части, собери мастерскую и перейди дальше. Незаконченные письма, готовые подарки и посылки сохраняются; готовые подарки с поля уходят в запас; запчасти и незаконченные сборки не переносятся. Упаковочная станция третьей смены снижает повреждения с 10% до 5% — тестовое значение.</p><p><b>Темп.</b> Запас 40 ❄, +1 каждые 30 секунд, включая время вне игры. «Быстрый тест ×10» ускоряет только ожидание: снежинка за 3 секунды, ответ за 2. Цены и вероятности не меняются.</p><p>Перетаскивай или нажимай две клетки подряд. Клавиатура: Tab, Enter/пробел; Escape снимает выбор. Старшие запчасти не заменяют младшие в рецепте.</p></dialog>
-<dialog id="restart-dialog" aria-labelledby="restart-title"><h2 id="restart-title">Начать с первой мастерской?</h2><p>Сохранение v21 будет сброшено. Старые версии и их сохранения останутся.</p><div class="tools"><button id="restart-cancel">Продолжить</button><button id="restart-confirm" class="primary">Начать заново</button></div></dialog>
+<dialog id="restart-dialog" aria-labelledby="restart-title"><h2 id="restart-title">Начать сначала?</h2><p>Текущий прогресс будет сброшен. Ты вернёшься в первую мастерскую с 40 снежинками.</p><div class="tools"><button type="button" id="restart-cancel" autofocus>Отмена</button><button type="button" id="restart-confirm" class="primary">Начать сначала</button></div></dialog>
 <script>
 (function (root) {
   'use strict';
@@ -617,7 +649,66 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
     "voice": "Самостоятельное письмо"
   }
 ];
+  const WORKSHOP_AUTHORS = {
+    "young-02": {
+      "who": "Ваня, 6 лет"
+    },
+    "young-07": {
+      "who": "Илья, 5 лет"
+    },
+    "middle-02": {
+      "who": "Саша, 8 лет",
+      "request": "Привет, Дед Мороз! Я хочу маленького робота, который шагает. У друга есть заводной жук. Мы хотим посмотреть, кто быстрее пройдёт по коридору. Я уже придумал, где будет старт."
+    },
+    "older-02": {
+      "who": "Костя, 11 лет",
+      "request": "Дорогой Дед Мороз! Подари, пожалуйста, программируемого робота. Я пробовал составлять команды на компьютере, а теперь хочу увидеть, как по ним двигается настоящая игрушка. Сделаю лабиринт из коробок и попробую заранее записать весь маршрут, без исправлений на ходу.",
+      "reply": "Спасибо за робота! Первый маршрут не получился: я забыл один поворот. Потом стал сначала рисовать путь на бумаге, а уже после вводить команды. Короткий лабиринт он прошёл. Большой ещё переделываю — там не хватает места для разворота. Ещё хочу добавить ворота."
+    },
+    "young-04": {
+      "who": "Лера, 6 лет",
+      "request": "Дедушка Мороз, хочу мишку-брелок. Маленького, чтобы пристегнуть на рюкзак. Рюкзак у меня синий. Мама покажет, как пристегнуть, а дальше я сама.",
+      "reply": "Мишку прицепили. Он теперь со мной ходит. Я его снимала показать бабушке и потом долго застёгивала обратно. Но застегнула! Спасибо."
+    },
+    "young-08": {
+      "who": "Мила, 6 лет",
+      "reply": "Спасибо за котика! Я сделала дом из двух коробок. Он там сидит. Настоящий кот тоже пришёл и лёг на крышу. Пришлось придерживать."
+    },
+    "middle-08": {
+      "who": "Рита, 7 лет",
+      "reply": "Спасибо за капибару! Она очень мягкая. Я сначала называла её просто Капа, а потом так и оставила. Вчера брала к нам на диван смотреть мультфильм. Сейчас она опять у подушки."
+    },
+    "older-07": {
+      "who": "Оля, 10 лет",
+      "reply": "Спасибо за игрушку! Читала с ней вчера, пока мама не сказала выключать свет. Она как раз поместилась вдоль подлокотника. Потом брат попросил себе на вечер, я дала, но перед сном забрала обратно. Теперь он тоже хочет такую. Я свою пока никуда далеко не уношу."
+    },
+    "older-09": {
+      "who": "Настя, 12 лет",
+      "reply": "Спасибо за большую капибару! Поставила её у стены и устроилась читать. Младшая сестра пришла проверить, сколько она занимает места, и осталась рядом. Вдвоём тоже поместились, только книгу пришлось держать посередине. Маленькую капибару посадили рядом с большой."
+    }
+  };
   const RECIPES = [[2, 1], [3, 1], [3, 2], [4, 3], [5, 3], [6, 4], [7, 5, 1], [8, 6, 1, 2, 3]];
+  const RARE_PART = { chain: 'tech', level: 4, rare: true };
+  const RARE_NAME = 'Морозостойкая плата';
+  const RARE_TARGET = 6;
+  const CHOICE_LETTERS = [
+    { id: 'garage', threshold: 2, age: 6, ageGroup: '5–6', who: 'Даня, 6 лет', options: [1, 2],
+      text: 'Дедушка Мороз, у меня гараж из коробки. Можно машинку, чтобы она сама туда заезжала?',
+      reasons: ['Разгоняется сама, если оттянуть назад.', 'Тоже едет сама, а фары видно в тёмном гараже.'],
+      replyText: 'Спасибо за машинку! Она заехала прямо в гараж. Я сделал ей ещё и мойку из губки.' },
+    { id: 'mission', threshold: 5, age: 8, ageGroup: '7–9', who: 'Лёня, 8 лет', options: [3, 4],
+      text: 'Мы с братом играем в экспедицию. У нас два штаба. Хочется передавать секретные записки или разговаривать, чтобы не бегать в другой штаб.',
+      reasons: ['Маленький робот может отнести лёгкую записку по ровному полу.', 'По рациям можно переговариваться из разных комнат.'],
+      replyText: 'Спасибо! Теперь мы можем передавать секреты между штабами. Мама была в нашем штабе, но мы ей пароль не сказали.' }
+  ];
+  const SPECIAL_LETTERS = [
+    { id: 'twins', threshold: 8, who: 'Костя и Гриша, 6 лет', levels: [1, 1],
+      text: 'Дедушка Мороз, мы близнецы. Можно две одинаковые машинки? Мы хотим гоняться, а то у Гриши сейчас машина быстрее!',
+      replyText: 'Спасибо за машинки! Теперь у нас честные гонки. Сегодня выиграла кошка: она села прямо на финиш.' },
+    { id: 'village', threshold: 16, who: 'Дима из деревни Сосновки', levels: [2, 3], optional: 1,
+      text: 'У нас в клубе ёлка. Мы хотим машинку с фарами и шагающего робота для игр после праздника. Если поместится ещё машинка, оставим её малышам.',
+      replyText: 'Посылка приехала к нашей ёлке! Мы выключили свет, и фары были видны даже из коридора. Спасибо от всей Сосновки!' }
+  ];
   const SNOW = { 1: { name: 'Рыхлый снег', cost: 1 }, 2: { name: 'Слежавшийся снег', cost: 2 }, 3: { name: 'Лёд', cost: 5 } };
   const at = p => (Number(p.slice(1)) - 1) * 7 + p.charCodeAt(0) - 65;
   const coord = i => String.fromCharCode(65 + i % 7) + (Math.floor(i / 7) + 1);
@@ -645,22 +736,24 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
     result.B7 = { kind: 'postcard', name: 'Открытка снеговика', text: ['«В первую зиму я боялся заходить на почту: вдруг растаю? Дедушка выделил мне прохладное местечко у двери».', '«Снегурочка связала мне варежки. Руки у меня из веточек, но с варежками всё равно уютнее».', '«Однажды мы отправили посылку самим себе. Очень хотелось тоже получить письмо!»'][s] };
     result.F8 = { kind: 'postcard', name: 'Старая открытка почты', text: '«Первую вывеску мы рисовали вместе. Буквы вышли кривые, зато дети сразу нашли дорогу».', amount: 4 };
     result.A6 = { kind: 'letter', name: 'Письмо из сугроба' };
+    if (s === 0) result.C6 = { kind: 'rare', name: RARE_NAME };
     return result;
   });
   const item = (chain, level) => ({ chain, level });
-  function makeBoard(shift) {
+  function makeBoard(shift, compactStart = false) {
     const b = Array.from({ length: 63 }, (_, i) => {
       const r = Math.floor(i / 7), c = i % 7;
       if (!r) return { blocked: true };
       if (r <= 2 || (r === 3 && c >= 2 && c <= 4)) return null;
       return { snow: r >= 7 ? 3 : r >= 5 ? 2 : 1 };
     });
+    if (compactStart && shift === 0) for (const p of ['A2', 'G2', 'A3']) b[at(p)] = { snow: 1 };
     for (const [p, chain] of Object.entries(SHIFTS[shift].generators)) b[at(p)] = { gen: chain };
     for (const [p, [c, l]] of Object.entries(SHIFTS[shift].start)) b[at(p)] = item(c, l);
     for (const [p, cache] of Object.entries(CACHES[shift])) if (cache.snow) b[at(p)] = { snow: cache.snow };
     return b;
   }
-  const api = { PERSONAL_LETTERS, LEGACY_PERSONAL_LETTERS, CHAINS, RECIPES, SNOW, SHIFTS, CACHES, at, coord, makeBoard, item };
+  const api = { WORKSHOP_AUTHORS, RARE_PART, RARE_NAME, RARE_TARGET, CHOICE_LETTERS, SPECIAL_LETTERS, PERSONAL_LETTERS, LEGACY_PERSONAL_LETTERS, CHAINS, RECIPES, SNOW, SHIFTS, CACHES, at, coord, makeBoard, item };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PostContent = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
@@ -672,13 +765,15 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
   'use strict';
   const C = typeof module !== 'undefined' && module.exports ? require('./content.js') : root.PostContent;
   const { CHAINS, RECIPES, SNOW, SHIFTS, CACHES, at, coord, makeBoard, item } = C;
-  const VERSION = 21, MAX_ENERGY = 40, REGEN_MS = 30000, MAIL_MS = 20000;
+  const VERSION = 22, MAX_ENERGY = 40, REGEN_MS = 30000, MAIL_MS = 20000;
   const clone = x => JSON.parse(JSON.stringify(x));
   const key = x => x.chain + ':' + x.level;
   const isItem = x => !!x && Object.hasOwn(CHAINS, x.chain) && Number.isInteger(x.level) && x.level >= 1 && x.level <= 8;
-  const label = x => CHAINS[x.chain].names[x.level - 1];
+  const isRarePart = x => x?.rare === true && x.chain === C.RARE_PART.chain && x.level === C.RARE_PART.level;
+  const label = x => isRarePart(x) ? C.RARE_NAME : CHAINS[x.chain].names[x.level - 1];
   const giftName = x => CHAINS[x.chain].gifts[x.level - 1];
-  const isGift = x => !!x && Object.keys(x).length === 1 && isItem(x.gift) && Object.keys(x.gift).length === 2;
+  const validGift = g => isItem(g) && (Object.keys(g).length === 2 || (Object.keys(g).length === 3 && g.rare === true && g.chain === 'tech' && g.level === C.RARE_TARGET));
+  const isGift = x => !!x && Object.keys(x).length === 1 && validGift(x.gift);
   function fitsRecipe(levels, level) {
     const remaining = [...RECIPES[level - 1]];
     for (const n of levels) { const i = remaining.indexOf(n); if (i < 0) return false; remaining.splice(i, 1); }
@@ -691,6 +786,10 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
   const isMovable = x => isItem(x) || isGift(x) || isAssembly(x);
   const cellName = x => isGift(x) ? giftName(x.gift) : isAssembly(x) ? 'Сборка: ' + giftName(x.assembly) : isItem(x) ? label(x) : '';
   function combine(a, b) {
+    if (isRarePart(a) || isRarePart(b)) {
+      const other = isRarePart(a) ? b : a;
+      return isItem(other) && other.chain === 'tech' && other.level === 6 ? { gift: { ...item('tech', C.RARE_TARGET), rare: true } } : null;
+    }
     const read = x => isItem(x) ? { chain: x.chain, parts: [x.level], target: null } : isAssembly(x) ? { chain: x.assembly.chain, parts: x.assembly.parts, target: x.assembly.level } : null;
     const x = read(a), y = read(b);
     if (!x || !y || x.chain !== y.chain || (x.target && y.target && x.target !== y.target)) return null;
@@ -723,13 +822,24 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
     return out;
   }
   const accessible = (s, i) => !!s.board[i]?.snow && neighbors(i).some(n => s.board[n] === null || isMovable(s.board[n]));
-  function count(s) { const n = {}; s.board.forEach(x => { if (isItem(x)) n[key(x)] = (n[key(x)] || 0) + 1; }); return n; }
+  function count(s) { const n = {}; s.board.forEach(x => { if (isItem(x) && !isRarePart(x)) n[key(x)] = (n[key(x)] || 0) + 1; }); return n; }
   const recipe = gift => RECIPES[gift.level - 1].map(l => item(gift.chain, l));
-  function canCraft(s, orderId, index) {
-    const L = findOrder(s, orderId); if (!L || !L.want[index] || L.packed[index]) return false;
-    const have = count(s), need = {};
-    recipe(L.want[index]).forEach(x => { need[key(x)] = (need[key(x)] || 0) + 1; });
-    return Object.entries(need).every(([k, n]) => (have[k] || 0) >= n);
+  function craftSlots(s, gift, useRare = false) {
+    const slots = [];
+    for (const part of recipe(gift)) {
+      const needsRare = useRare && part.level === C.RARE_PART.level;
+      const index = s.board.findIndex((x, i) => isItem(x) && key(x) === key(part) && !slots.includes(i) && isRarePart(x) === needsRare);
+      if (index < 0) return null;
+      slots.push(index);
+    }
+    return slots;
+  }
+  const rareFits = gift => gift.chain === 'tech' && gift.level === C.RARE_TARGET;
+  function canCraft(s, orderId, index, useRare = false) {
+    const L = findOrder(s, orderId);
+    if (!L || (L.choice && !L.chosen) || !L.want[index] || L.packed[index]) return false;
+    const gift = L.want[index];
+    return (!useRare || rareFits(gift)) && !!craftSlots(s, gift, useRare);
   }
   function countGifts(s) {
     const result = {};
@@ -737,7 +847,7 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
     return result;
   }
   function canSend(s, id) {
-    const L = findOrder(s, id); if (!L) return false;
+    const L = findOrder(s, id); if (!L || (L.choice && !L.chosen)) return false;
     const available = countGifts(s);
     return L.want.every((g, i) => {
       if (L.packed[i]) return true;
@@ -747,21 +857,41 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
   }
   function rates(s) { return { lost: .2, damaged: s.built.includes(2) ? .05 : .1 }; }
   const giftThanks = gift => Math.max(1, gift.level - 4);
-  const orderThanks = order => order.want.reduce((sum, gift) => sum + giftThanks(gift), 0);
+  const orderThanks = order => order.want.reduce((sum, gift) => sum + giftThanks(gift), 0) + (order.special === 'village' && order.want.length === 3 ? 1 : 0);
   const ORDER_TIERS = ['easy', 'medium', 'hard'];
   const ENERGY_GIFTS = [
     { threshold: 5, amount: 5, name: 'Подарок снеговика' },
     { threshold: 10, amount: 10, name: 'Термос Снегурочки' }
   ];
   const completedLetters = s => new Set(s.mail.filter(m => m.claimed && m.outcome === 'success').map(m => m.order.id)).size;
+  const letterHistory = s => [...orderList(s), ...s.mail.map(m => m.order)];
+  const ordinarySuccesses = s => s.mail.filter(m => m.claimed && m.outcome === 'success' && ORDER_TIERS.includes(m.order.difficulty) && !m.order.choice).length;
+  function eventLetter(s, data, difficulty, levels) {
+    return { id: s.nextId++, who: data.who, text: data.text, replyText: data.replyText, difficulty,
+      want: levels.map(level => item('tech', level)), packed: levels.map(() => false), protected: false, retry: false, side: false };
+  }
+  function offerSpecial(s) {
+    if (s.extra.some(L => L.special) || s.mail.some(m => m.order.special && !m.claimed)) return;
+    const history = letterHistory(s), delivered = ordinarySuccesses(s);
+    const data = C.SPECIAL_LETTERS.find(L => delivered >= L.threshold && !history.some(p => p.special === L.id));
+    if (data) s.extra.push({ ...eventLetter(s, data, 'special', data.levels), special: data.id });
+  }
+  const BOY_NAMES = ['Миша', 'Ваня', 'Тимофей', 'Егор', 'Гриша', 'Лёва', 'Коля', 'Марк', 'Петя', 'Тимур'];
+  const GIRL_NAMES = ['Мила', 'Аня', 'Вера', 'Соня', 'Лиза', 'Маша', 'Катя', 'Ника', 'Вика', 'Оля'];
+  const MIXED_NAMES = BOY_NAMES.flatMap((name, i) => [name, GIRL_NAMES[i]]);
   function newLetter(s, side = false, difficulty = 'easy') {
-    const chains = Object.values(SHIFTS[s.shift].generators), sequence = s.issued++;
+    if (!side && difficulty === 'medium' && s.shift !== 1) {
+      const history = letterHistory(s), delivered = ordinarySuccesses(s);
+      const data = C.CHOICE_LETTERS.find(L => delivered >= L.threshold && s.unlocked.tech >= Math.max(...L.options) && !history.some(p => p.choice === L.id));
+      if (data) return { ...eventLetter(s, data, difficulty, [data.options[0]]), choice: data.id, chosen: false, age: data.age, ageGroup: data.ageGroup };
+    }
+    const chains = s.shift === 1 ? ['sew'] : Object.values(SHIFTS[s.shift].generators), sequence = s.issued++;
     const chain = chains[(sequence + chains.length - 1) % chains.length], issued = s.chainIssued[chain]++;
     const hardSent = s.mail.filter(m => m.attempt === 1 && m.order.difficulty === 'hard' && m.order.want[0].chain === chain).length;
     const cap = Math.min(8, Math.max(3, s.unlocked[chain], 3 + Math.floor(hardSent / 2)));
     const level = side || difficulty === 'easy' ? 1 + issued % 2 : difficulty === 'medium' ? Math.min(5, Math.max(2, cap - 1)) : cap;
     s.unlocked[chain] = Math.max(s.unlocked[chain], level);
-    const names = ['Миша', 'Аня', 'Тимофей', 'Вера', 'Соня', 'Лёва', 'Маша', 'Егор', 'Лиза', 'Тимур'];
+    const names = [BOY_NAMES, GIRL_NAMES, MIXED_NAMES][s.shift];
     const history = [...orderList(s), ...s.mail.map(m => m.order)];
     const used = new Set(history.map(L => L.storyId).filter(Boolean));
     const activeStories = new Set([...orderList(s), ...s.mail.filter(m => !m.claimed).map(m => m.order)].map(L => L.storyId).filter(Boolean));
@@ -772,13 +902,14 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
     const story = candidates.find(x => !used.has(x.id)) || candidates.filter(x => !activeStories.has(x.id) && lastSeen(x.id) <= s.nextId - 6).sort((a,b) => lastSeen(a.id) - lastSeen(b.id))[0];
     const age = story?.age || level + 4;
     const ageGroup = level <= 2 ? '5–6' : level <= 5 ? '7–9' : '10–12';
-    return { id: s.nextId++, who: story?.who || names[(s.nextId - 2) % names.length] + ', ' + age + ' лет', age, ageGroup,
-      text: story?.request || (side ? 'Моё письмо потерялось в сугробе. Как здорово, что вы его нашли!' : 'Дедушка Мороз, подари, пожалуйста, этот подарок. У меня уже есть идеи для игр с ним. Спасибо, что прочитал моё письмо!'),
-      replyText: story?.reply || 'Подарок приехал! Спасибо, Дедушка! Мы уже придумали, как будем с ним играть.', storyId: story?.id || null,
+    const author = s.shift < 2 && story ? { ...story, ...C.WORKSHOP_AUTHORS[story.id] } : story;
+    return { id: s.nextId++, who: author?.who || names[(s.nextId - 2) % names.length] + ', ' + age + ' лет', age, ageGroup,
+      text: author?.request || (side ? 'Моё письмо потерялось в сугробе. Как здорово, что вы его нашли!' : 'Дедушка Мороз, подари, пожалуйста, этот подарок. У меня уже есть идеи для игр с ним. Спасибо, что прочитал моё письмо!'),
+      replyText: author?.reply || 'Подарок приехал! Спасибо, Дедушка! Мы уже придумали, как будем с ним играть.', storyId: story?.id || null,
       difficulty: side ? 'found' : difficulty, want, packed: [false], protected: false, retry: false, side };
   }
   function fresh(now = Date.now()) {
-    const s = { version: VERSION, energyGiftClaims: [], shift: 0, board: makeBoard(0), giftStore: [], letters: [], extra: [], mail: [], cleared: [], bag: [], decor: [], postcards: [], built: [], thanks: 0,
+    const s = { version: VERSION, energyGiftClaims: [], shift: 0, compactStart: true, board: makeBoard(0, true), giftStore: [], letters: [], extra: [], mail: [], cleared: [], bag: [], decor: [], postcards: [], built: [], thanks: 0,
       energy: MAX_ENERGY, energyAt: now, speed: 1, issued: 0, nextId: 1, nextMailId: 1, nextToolId: 1, moves: 0,
       unlocked: { tech: 1, sew: 1, art: 1 }, chainIssued: { tech: 0, sew: 0, art: 0 }, rng: ((Math.floor(Math.random() * 0xffffffff) ^ now) >>> 0) || 1 };
     for (const tier of ORDER_TIERS) s.letters.push(newLetter(s, false, tier));
@@ -786,6 +917,7 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
   }
   function validate(s) {
     try {
+      if (s?.compactStart !== undefined && typeof s.compactStart !== 'boolean') return false;
       if (!s || s.version !== VERSION || !Number.isInteger(s.shift) || !SHIFTS[s.shift]) return false;
       for (const k of ['energy', 'thanks', 'issued', 'nextId', 'nextMailId', 'nextToolId', 'moves', 'rng']) if (!Number.isInteger(s[k]) || s[k] < 0) return false;
       if (!s.nextId || !s.nextMailId || !s.nextToolId || !s.rng || s.rng > 0xffffffff || s.energy > MAX_ENERGY || ![1, 10].includes(s.speed) || !Number.isFinite(s.energyAt) || s.energyAt < 0) return false;
@@ -793,9 +925,21 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
       if (s.board.length !== 63 || s.letters.length !== 3 || ORDER_TIERS.some(tier => s.letters.filter(L => L?.difficulty === tier).length !== 1)) return false;
       if (new Set(s.energyGiftClaims).size !== s.energyGiftClaims.length || !s.energyGiftClaims.every(n => ENERGY_GIFTS.some(g => g.threshold === n) && completedLetters(s) >= n)) return false;
       const allowed = Object.values(SHIFTS[s.shift].generators);
-      if (!s.giftStore.every(g => isItem(g) && Object.keys(g).length === 2 && allowed.includes(g.chain))) return false;
+      if (!s.giftStore.every(g => validGift(g) && allowed.includes(g.chain))) return false;
       for (const c of Object.keys(CHAINS)) if (!Number.isInteger(s.unlocked?.[c]) || s.unlocked[c] < 1 || s.unlocked[c] > 8 || !Number.isInteger(s.chainIssued?.[c]) || s.chainIssued[c] < 0) return false;
-      const validOrder = L => L && Number.isInteger(L.id) && L.id > 0 && L.id < s.nextId && typeof L.who === 'string' && typeof L.text === 'string' && Array.isArray(L.want) && L.want.length > 0 && L.want.length <= 2 && L.want.every(g => isItem(g) && allowed.includes(g.chain)) && Array.isArray(L.packed) && L.packed.length === L.want.length && L.packed.every(x => typeof x === 'boolean') && typeof L.protected === 'boolean' && typeof L.retry === 'boolean' && [...ORDER_TIERS, 'legacy', 'found'].includes(L.difficulty) && (L.replyText === undefined || typeof L.replyText === 'string') && (L.storyId == null || [...C.PERSONAL_LETTERS, ...C.LEGACY_PERSONAL_LETTERS].some(p => p.id === L.storyId && L.want.length === 1 && p.chain === L.want[0].chain && p.level === L.want[0].level));
+      const validEvent = L => {
+        if (L.rarePacked !== undefined && (!Array.isArray(L.rarePacked) || !L.rarePacked.every((i, n, a) => Number.isInteger(i) && a.indexOf(i) === n && L.packed[i] && L.want[i] && rareFits(L.want[i])))) return false;
+        if (L.choice) {
+          const data = C.CHOICE_LETTERS.find(p => p.id === L.choice);
+          return !!data && !L.special && L.difficulty === 'medium' && L.want.length === 1 && L.want[0].chain === 'tech' && data.options.includes(L.want[0].level) && typeof L.chosen === 'boolean' && (L.chosen || !L.packed[0]);
+        }
+        if (L.difficulty !== 'special') return !L.special;
+        const data = C.SPECIAL_LETTERS.find(p => p.id === L.special);
+        if (!data) return false;
+        const levels = L.want.length === 3 ? [...data.levels, data.optional] : data.levels;
+        return L.want.length === levels.length && L.want.every((g, i) => g.chain === 'tech' && g.level === levels[i]);
+      };
+      const validOrder = L => L && Number.isInteger(L.id) && L.id > 0 && L.id < s.nextId && typeof L.who === 'string' && typeof L.text === 'string' && Array.isArray(L.want) && L.want.length > 0 && L.want.length <= (L.special === 'village' ? 3 : 2) && L.want.every(g => isItem(g) && allowed.includes(g.chain)) && Array.isArray(L.packed) && L.packed.length === L.want.length && L.packed.every(x => typeof x === 'boolean') && typeof L.protected === 'boolean' && typeof L.retry === 'boolean' && [...ORDER_TIERS, 'legacy', 'found', 'special'].includes(L.difficulty) && validEvent(L) && (L.replyText === undefined || typeof L.replyText === 'string') && (L.storyId == null || [...C.PERSONAL_LETTERS, ...C.LEGACY_PERSONAL_LETTERS].some(p => p.id === L.storyId && L.want.length === 1 && p.chain === L.want[0].chain && p.level === L.want[0].level));
       if (!orderList(s).every(validOrder) || new Set(orderList(s).map(L => L.id)).size !== orderList(s).length) return false;
       const ids = new Set();
       for (const m of s.mail) {
@@ -809,20 +953,20 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
       let spent = 0; const clearedIds = new Set();
       for (const c of s.cleared) {
         if (!c || !Number.isInteger(c.shift) || c.shift < 0 || c.shift > s.shift || !Number.isInteger(c.cell) || c.cell < 7 || c.cell >= 63 || clearedIds.has(c.shift + ':' + c.cell)) return false;
-        const x = makeBoard(c.shift)[c.cell]; if (!x?.snow) return false;
+        const x = makeBoard(c.shift, s.compactStart)[c.cell]; if (!x?.snow) return false;
         clearedIds.add(c.shift + ':' + c.cell); spent += SNOW[x.snow].cost;
       }
       const successes = s.mail.filter(m => m.claimed && m.outcome === 'success');
       if (new Set(successes.map(m => m.order.id)).size !== successes.length || s.thanks !== successes.reduce((sum, m) => sum + m.rewardThanks, 0) - spent) return false;
-      const initial = makeBoard(s.shift);
+      const initial = makeBoard(s.shift, s.compactStart);
       for (let i = 0; i < 63; i++) {
         const x = s.board[i];
         if (i < 7 || (initial[i]?.snow && !isCleared(s, s.shift, i))) { if (JSON.stringify(x) !== JSON.stringify(initial[i])) return false; }
-        else if (x !== null && !((isItem(x) && Object.keys(x).length === 2 && allowed.includes(x.chain)) || (isGift(x) && allowed.includes(x.gift.chain)) || (isAssembly(x) && allowed.includes(x.assembly.chain)))) return false;
+        else if (x !== null && !((isItem(x) && (Object.keys(x).length === 2 || (Object.keys(x).length === 3 && isRarePart(x))) && allowed.includes(x.chain)) || (isGift(x) && allowed.includes(x.gift.chain)) || (isAssembly(x) && allowed.includes(x.assembly.chain)))) return false;
       }
       // Every cleared tile must have been reachable at the time it was opened.
       for (let shift = 0; shift <= s.shift; shift++) {
-        const temp = { board: makeBoard(shift) };
+        const temp = { board: makeBoard(shift, s.compactStart) };
         for (const c of s.cleared.filter(x => x.shift === shift)) { if (!accessible(temp, c.cell)) return false; temp.board[c.cell] = null; }
       }
       if (new Set(s.built).size !== s.built.length || !s.built.every(n => Number.isInteger(n) && n >= 0 && n <= s.shift)) return false;
@@ -840,6 +984,10 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
   }
   function migrate(saved) {
     try {
+      if (saved?.version === 21) {
+        const candidate = { ...clone(saved), version: VERSION };
+        return validate(candidate) ? candidate : null;
+      }
       if ([8, 9, 10, 12, 20].includes(saved?.version)) {
         if (!Array.isArray(saved.mail) || !Array.isArray(saved.letters) || saved.letters.length !== 3 || !Array.isArray(saved.extra) || !Number.isInteger(saved.energy)) return null;
         const candidate = { ...clone(saved), version: VERSION, energyGiftClaims: [], giftStore: saved.giftStore || [], energy: Math.min(MAX_ENERGY, saved.energy + (saved.version >= 12 ? 0 : saved.version === 10 ? 10 : 20)) };
@@ -893,7 +1041,9 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
       if (a.type === 'next') {
         if (!s.built.includes(s.shift) || s.shift === 2) return fail('Сначала собери мастерскую из найденных частей.');
         s.giftStore.push(...b.filter(isGift).map(x => clone(x.gift)));
-        s.shift++; s.board = makeBoard(s.shift); s.issued = 0; this.history = [];
+        const rare = b.find(isRarePart);
+        s.shift++; s.board = makeBoard(s.shift);
+        if (rare) s.board[s.board.indexOf(null)] = rare; s.issued = 0; this.history = [];
         return ok('Новый стол готов. Готовые подарки с поля перенесены в запас; письма, посылки и находки сохранены.');
       }
       if (a.type === 'spawn') {
@@ -910,12 +1060,42 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
       if (a.type === 'return') {
         if (isAssembly(b[a.from]) || isGift(b[a.from])) return this.act({ type: 'disassemble', cell: a.from });
         const x = b[a.from]; if (!isItem(x)) return fail('Вернуть можно только запчасть.');
+        if (isRarePart(x)) return fail('Редкая плата хранится на столе. Она заменяет деталь уровня 4 в рецепте вездехода.');
         this.remember(); b[a.from] = null; s.moves++; return ok('Освободили клетку. Снежинки за запчасть не возвращаются.');
       }
-      if (a.type === 'craft') {
-        const L = findOrder(s, a.orderId); if (!L || !canCraft(s, L.id, a.giftIndex)) return fail('Нужен полный комплект запчастей точных уровней.');
+      if (a.type === 'chooseGift') {
+        const L = findOrder(s, a.orderId), data = C.CHOICE_LETTERS.find(p => p.id === L?.choice);
+        if (!data?.options.includes(a.level) || L.retry || L.packed[0]) return fail('Сначала освободи место в посылке, чтобы изменить выбор.');
+        this.remember(); L.want[0] = item('tech', a.level); L.chosen = true;
+        return ok('Выбран подарок: ' + giftName(L.want[0]) + '.');
+      }
+      if (a.type === 'villageExtra') {
+        const L = findOrder(s, a.orderId);
+        if (L?.special !== 'village' || L.retry || L.packed[2]) return fail('Сначала разбери упакованный третий подарок.');
         this.remember();
-        for (const part of recipe(L.want[a.giftIndex])) b[b.findIndex(x => isItem(x) && key(x) === key(part))] = null;
+        if (L.want.length === 3) { L.want.pop(); L.packed.pop(); }
+        else { L.want.push(item('tech', C.SPECIAL_LETTERS.find(p => p.id === 'village').optional)); L.packed.push(false); }
+        return ok(L.want.length === 3 ? 'Добавили место для третьего подарка и бонуса +1 ♡.' : 'Подготовим два подарка для деревни.');
+      }
+      if (a.type === 'packGift') {
+        const L = findOrder(s, a.orderId), i = a.giftIndex, g = L?.want[i];
+        if (!L?.special || !g || L.packed[i]) return fail('В этой посылке нет свободного места для такого подарка.');
+        const cell = b.findIndex(x => isGift(x) && key(x.gift) === key(g));
+        const store = s.giftStore.findIndex(x => key(x) === key(g));
+        if (cell < 0 && store < 0) return fail('Сначала собери подарок.');
+        this.remember();
+        const gift = cell >= 0 ? b[cell].gift : s.giftStore[store];
+        if (cell >= 0) b[cell] = null; else s.giftStore.splice(store, 1);
+        if (gift.rare) (L.rarePacked ||= []).push(i);
+        L.packed[i] = true; s.moves++;
+        return ok(giftName(g) + ' упакован. Место на столе свободно.');
+      }
+      if (a.type === 'craft') {
+        const L = findOrder(s, a.orderId), useRare = a.useRare === true;
+        if (!L || !canCraft(s, L.id, a.giftIndex, useRare)) return fail('Нужен полный комплект запчастей точных уровней.');
+        this.remember();
+        for (const i of craftSlots(s, L.want[a.giftIndex], useRare)) b[i] = null;
+        if (useRare) (L.rarePacked ||= []).push(a.giftIndex);
         L.packed[a.giftIndex] = true; s.moves++;
         return ok(giftName(L.want[a.giftIndex]) + ' собран и лежит на упаковочной полке письма.');
       }
@@ -930,9 +1110,13 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
         const slots = packed || stored ? empty : [a.cell, ...empty];
         if (slots.length < levels.length) return fail('Для всех деталей нужно ' + levels.length + ' клеток. Освободи ещё ' + (levels.length - slots.length) + '. Подарок сохранён.');
         this.remember();
-        if (packed) L.packed[a.giftIndex] = false;
+        const rareUsed = gift?.rare || (packed && L.rarePacked?.includes(a.giftIndex));
+        if (packed) {
+          L.packed[a.giftIndex] = false;
+          if (rareUsed) L.rarePacked = L.rarePacked.filter(i => i !== a.giftIndex);
+        }
         if (stored) s.giftStore.splice(a.storeIndex, 1);
-        levels.forEach((level, i) => { b[slots[i]] = item(chain, level); }); s.moves++;
+        levels.forEach((level, i) => { b[slots[i]] = rareUsed && level === C.RARE_PART.level ? clone(C.RARE_PART) : item(chain, level); }); s.moves++;
         return ok('Все детали возвращены на поле по рецепту.', packed || stored ? slots[0] : a.cell);
       }
       if (a.type === 'protect') {
@@ -946,8 +1130,9 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
         L.want.forEach((g, i) => {
           if (L.packed[i]) return;
           const cell = b.findIndex(x => isGift(x) && key(x.gift) === key(g));
+          const gift = cell >= 0 ? b[cell].gift : s.giftStore.splice(s.giftStore.findIndex(x => key(x) === key(g)), 1)[0];
           if (cell >= 0) b[cell] = null;
-          else s.giftStore.splice(s.giftStore.findIndex(x => key(x) === key(g)), 1);
+          if (gift.rare) (L.rarePacked ||= []).push(i);
           L.packed[i] = true;
         });
         const chance = rates(s), roll = L.retry || L.protected ? 0 : this.roll();
@@ -956,6 +1141,7 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
         s.mail.push({ id: s.nextMailId++, order: clone(L), attempt: L.retry ? 2 : 1, rewardThanks: orderThanks(L), outcome, bonusEnergy: outcome === 'success' && this.roll() < .2 ? 1 : 0, dueAt: this.now() + MAIL_MS / s.speed, claimed: false, shift: s.shift });
         const normal = s.letters.findIndex(x => x.id === L.id);
         if (normal >= 0) s.letters[normal] = newLetter(s, false, L.difficulty); else s.extra.splice(s.extra.findIndex(x => x.id === L.id), 1);
+        offerSpecial(s);
         s.moves++;
         return ok('Посылка для ' + L.who + ' в пути. Сердечко придёт только с успешным ответом.');
       }
@@ -964,6 +1150,7 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
         if (!m || m.claimed || m.dueAt > this.now()) return fail('Ответ пока не пришёл или уже открыт.');
         this.remember(); m.claimed = true;
         if (m.outcome === 'success') {
+          offerSpecial(s);
           s.thanks += m.rewardThanks; const overflow = m.bonusEnergy && s.energy === MAX_ENERGY;
           if (m.bonusEnergy) {
             if (s.energy < MAX_ENERGY) { s.energy++; if (s.energy === MAX_ENERGY) s.energyAt = this.now(); }
@@ -971,8 +1158,8 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
           }
           return ok('Ответ: «Спасибо за подарок!» +' + m.rewardThanks + ' ♡.' + (m.bonusEnergy ? ' +1 ❄' + (overflow ? ' · сохранена в находках.' : '') : ''));
         }
-        if (m.outcome === 'damaged') return ok('Подарок повредился в дороге. За эту посылку нет сердечка. Новые письма продолжают приходить.');
-        const retry = clone(m.order); retry.retry = true; retry.protected = false; retry.packed = retry.want.map(() => false);
+        if (m.outcome === 'damaged') { offerSpecial(s); return ok('Подарок повредился в дороге. За эту посылку нет сердечка. Новые письма продолжают приходить.'); }
+        const retry = clone(m.order); retry.retry = true; retry.protected = false; retry.packed = retry.want.map(() => false); delete retry.rarePacked;
         s.extra.push(retry);
         return ok('Посылка потерялась. Повторный заказ добавлен под письмами; он гарантированно дойдёт.');
       }
@@ -982,6 +1169,10 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
         const cost = SNOW[x.snow].cost; if (s.thanks < cost) return fail('Нужно ' + cost + ' ♡. Отправляй подарки и открывай успешные ответные письма.');
         this.remember(); s.thanks -= cost; b[a.cell] = null; s.cleared.push({ shift: s.shift, cell: a.cell }); s.moves++;
         const loot = cacheAt(s.shift, a.cell);
+        if (loot?.kind === 'rare') {
+          b[a.cell] = clone(C.RARE_PART);
+          return ok('Нашли морозостойкую плату! Она заменяет деталь уровня 4 в рецепте вездехода.', a.cell);
+        }
         if (!loot) return ok('Убрали снег. Стало больше места для работы.', a.cell);
         if (['energy', 'scissors', 'tag'].includes(loot.kind)) s.bag.push({ id: s.nextToolId++, ...clone(loot) });
         if (loot.kind === 'decor') s.decor.push({ ...clone(loot), source: s.shift + ':' + a.cell });
@@ -1010,7 +1201,7 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
       }
       if (a.type === 'split') {
         const i = s.bag.findIndex(x => x.id === a.toolId && x.kind === 'scissors'), x = b[a.cell], empty = b.indexOf(null);
-        if (i < 0 || !isItem(x) || x.level === 1) return fail('Выбери запчасть уровня 2 или выше и найденные ножницы.');
+        if (i < 0 || !isItem(x) || isRarePart(x) || x.level === 1) return fail('Выбери запчасть уровня 2 или выше и найденные ножницы.');
         if (empty < 0) return fail('Для двух половинок нужна ещё одна свободная клетка. Ножницы не потрачены.');
         this.remember(); b[a.cell] = item(x.chain, x.level - 1); b[empty] = item(x.chain, x.level - 1); s.bag.splice(i, 1); s.moves++;
         return ok('Разделили запчасть на две предыдущего уровня.', a.cell);
@@ -1024,10 +1215,10 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
         return y.gen === chain ? this.act({ type: 'return', from }) : fail('У этой детали другой генератор.');
       }
       if (y?.snow || y?.blocked) return fail('Сначала расчисти снег за спасибо.');
-      if (isItem(x) && isItem(y) && key(x) === key(y)) {
+      if (isItem(x) && isItem(y) && !isRarePart(x) && !isRarePart(y) && key(x) === key(y)) {
         if (x.level === 8) return fail('Это максимальный уровень запчасти. Её используют в рецепте.');
-        const need = orderList(s).flatMap(L => L.want.flatMap((g, n) => L.packed[n] ? [] : recipe(g))).filter(p => key(p) === key(x)).length;
-        if (!a.force && need && count(s)[key(x)] - 2 < need) return { ok: false, warning: true, text: label(x) + ' нужен в рецепте. Всё равно слить?' };
+        const need = orderList(s).filter(L => !L.choice || L.chosen).flatMap(L => L.want.flatMap((g, n) => L.packed[n] ? [] : recipe(g))).filter(p => key(p) === key(x)).length;
+        if (!a.force && need && count(s)[key(x)] - 2 < need) return { ok: false, warning: true, text: label(x) + ' нужен в рецепте.' };
         this.remember(); b[from] = null; b[to] = item(x.chain, x.level + 1); s.moves++;
         return ok(label(b[to]) + ' · уровень ' + b[to].level, to);
       }
@@ -1040,7 +1231,7 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
       return ok(y ? 'Поменяли запчасти местами.' : 'Переместили запчасть.', to);
     }
   }
-  const api = { ...C, VERSION, MAX_ENERGY, REGEN_MS, MAIL_MS, Game, fresh, validate, migrate, isItem, isGift, isAssembly, isMovable, cellName, combine, countGifts, ORDER_TIERS, ENERGY_GIFTS, completedLetters, giftThanks, orderThanks, label, giftName, key, recipe, count, canCraft, canSend, findOrder, orderList, neighbors, accessible, parts, complete, cacheAt, isCleared, rates };
+  const api = { ...C, VERSION, MAX_ENERGY, REGEN_MS, MAIL_MS, Game, fresh, validate, migrate, isItem, isRarePart, rareFits, isGift, isAssembly, isMovable, cellName, combine, countGifts, ORDER_TIERS, ENERGY_GIFTS, completedLetters, giftThanks, orderThanks, label, giftName, key, recipe, count, canCraft, canSend, findOrder, orderList, neighbors, accessible, parts, complete, cacheAt, isCleared, rates };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.PostGame = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -1048,13 +1239,14 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
 <script>
 (function () {
   'use strict';
-  const E = window.PostGame, $ = id => document.getElementById(id), KEY = 'pochta-workshops-v21';
+  const E = window.PostGame, $ = id => document.getElementById(id), KEY = 'pochta-workshops-v22';
   let saved, loadMessage = '', storageFailed = false;
   try {
-    const raw = localStorage.getItem(KEY), old = raw ? null : localStorage.getItem('pochta-workshops-v20') || localStorage.getItem('pochta-workshops-v12') || localStorage.getItem('pochta-workshops-v10') || localStorage.getItem('pochta-workshops-v9') || localStorage.getItem('pochta-workshops-v8');
+    const raw = localStorage.getItem(KEY), old = raw ? null : localStorage.getItem('pochta-workshops-v21') || localStorage.getItem('pochta-workshops-v20') || localStorage.getItem('pochta-workshops-v12') || localStorage.getItem('pochta-workshops-v10') || localStorage.getItem('pochta-workshops-v9') || localStorage.getItem('pochta-workshops-v8');
     if (raw || old) {
       const parsed = JSON.parse(raw || old); saved = E.migrate(parsed);
       if (!saved) { saved = undefined; loadMessage = 'Сохранение не удалось прочитать. Начинаем заново.'; }
+      else if (old && parsed.version === 21) loadMessage = 'Прогресс перенесён. Новые письма будут приходить по мере успешных доставок.';
       else if (old) loadMessage = 'Прогресс перенесён. Теперь на верёвке три вида просьб. Прежние письма и упакованные подарки сохранены в дополнительных.';
     }
   }
@@ -1111,7 +1303,7 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
     effect.addEventListener('animationend', e => { if (e.target === effect) effect.remove(); });
     target.append(effect);
     $('find-title').textContent = loot ? 'Под снегом: ' + loot.name : 'Ещё одна свободная клетка';
-    $('find-description').textContent = !loot ? 'Теперь здесь можно разместить детали.' : loot.required ? 'Часть добавлена к проекту мастерской.' : loot.kind === 'energy' ? loot.amount + ' снежинок сохранены в находках — можно взять позже.' : loot.kind === 'decor' ? 'Украшение появилось в мастерской.' : loot.kind === 'postcard' ? 'История сохранена в альбоме.' : loot.kind === 'letter' ? 'Найденное письмо добавлено к заказам.' : 'Инструмент сохранён в находках.';
+    $('find-description').textContent = !loot ? 'Теперь здесь можно разместить детали.' : loot.required ? 'Часть добавлена к проекту мастерской.' : loot.kind === 'energy' ? loot.amount + ' снежинок сохранены в находках — можно взять позже.' : loot.kind === 'rare' ? 'Плата осталась на столе. Она заменяет деталь уровня 4 в рецепте вездехода.' : loot.kind === 'decor' ? 'Украшение появилось в мастерской.' : loot.kind === 'postcard' ? 'История сохранена в альбоме.' : loot.kind === 'letter' ? 'Найденное письмо добавлено к заказам.' : 'Инструмент сохранён в находках.';
     $('find-feedback').hidden = false;
   }
   function spriteIcon(kind, chain, level, fallback) {
@@ -1133,18 +1325,47 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
   function button(text, fn, cls = '') { const b = node('button', cls, text); b.addEventListener('click', fn); return b; }
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(game.state)); storageFailed = false; } catch (_) { storageFailed = true; }
-    $('save-status').textContent = storageFailed ? 'Не удалось сохранить. Не закрывай страницу, если хочешь продолжить.' : 'Сохраняется в этом браузере · сохранение v8 сохранено отдельно';
+    $('save-status').textContent = storageFailed ? 'Не удалось сохранить. Не закрывай страницу, если хочешь продолжить.' : 'Прогресс автоматически сохраняется в этом браузере';
   }
   function tip(text, warn = false) { $('tip').textContent = text; $('tip').parentElement.classList.toggle('warning', warn); }
   function intro() {
     return game.state.mail.length ? 'Собирай подарки, жди ответов и расчищай путь за сердечки. Последняя часть мастерской — под дальним льдом.' : 'Открой рецепт письма. Одинаковые детали сливаются в старшую; разные детали по рецепту превращаются в подарок прямо на поле. Сборка в окне рецепта тоже работает.';
   }
-  function clearPending() { pending = null; $('confirm-merge').hidden = true; }
+  const boardCell = index => $('board').querySelector('[data-cell="' + index + '"]');
+  function clearPending(restoreFocus = false) {
+    if (!pending) return;
+    const target = boardCell(pending.to);
+    for (const index of [pending.from, pending.to]) boardCell(index)?.classList.remove('merge-pending');
+    pending = null;
+    $('merge-confirmation').hidden = true;
+    if (restoreFocus) target?.focus({ preventScroll: true });
+  }
+  function positionMergeConfirmation() {
+    if (!pending) return;
+    const cell = boardCell(pending.to);
+    if (!cell) { clearPending(); return; }
+    const anchor = cell.getBoundingClientRect(), panel = $('merge-confirmation');
+    if (anchor.bottom < 0 || anchor.top > window.innerHeight) { clearPending(); return; }
+    const box = panel.getBoundingClientRect(), gap = 8;
+    const left = Math.max(gap, Math.min(anchor.left + (anchor.width - box.width) / 2, window.innerWidth - box.width - gap));
+    const preferredTop = anchor.top >= box.height + gap * 2 ? anchor.top - box.height - gap : anchor.bottom + gap;
+    const top = Math.max(gap, Math.min(preferredTop, window.innerHeight - box.height - gap));
+    panel.style.left = left + 'px';
+    panel.style.top = top + 'px';
+  }
   function execute(a) {
     const clearedType = a.type === 'melt' ? game.state.board[a.cell]?.snow : null;
     const clearedLoot = clearedType ? E.cacheAt(game.state.shift, a.cell) : null;
     clearPending(); const r = a.type === 'undo' ? game.undo() : game.act(a);
-    if (r.warning) { pending = a; $('confirm-merge').hidden = false; tip(r.text, true); return false; }
+    if (r.warning) {
+      pending = a;
+      selected = null;
+      $('merge-message').textContent = r.text;
+      $('merge-confirmation').hidden = false;
+      render();
+      $('cancel-merge').focus({ preventScroll: true });
+      return false;
+    }
     if (!r.ok) { tip(r.text, true); return false; }
     selected = null; snowSelection = null; $('find-feedback').hidden = true; save(); render(r.pop); tip(r.text);
     if (clearedType) showClearEffect(a.cell, clearedType, clearedLoot);
@@ -1156,20 +1377,24 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
     x.style.setProperty('--part-color', E.CHAINS[p.chain].color); x.title = E.label(p); x.setAttribute('aria-label', E.label(p) + ', уровень ' + p.level + (available ? ': готово' : '')); return x;
   }
   const tierLabel = L => ({easy:'Простая', medium:'Средняя', hard:'Сложная', legacy:'Прежняя', found:'Найденная'}[L.difficulty] || 'Просьба');
+  const orderMark = L => L.choice ? 'Подбери подарок' : L.special ? 'Особая посылка' : '';
+  const specialTitle = L => L.special === 'twins' ? 'Подарки близнецам' : 'Посылка в далёкую деревню';
   function renderLetter(L, pinned = false) {
     if (pinned) {
       const ready = E.canSend(game.state, L.id);
       const card = node('article', 'pinned-letter' + (ready ? ' gift-ready' : ''));
       const open = button('', () => showRecipe(L.id), 'envelope-open'); open.dataset.order = L.id;
-      open.setAttribute('aria-label', 'Письмо: ' + L.who + '. ' + L.want.map(E.giftName).join(', ') + (ready ? '. Подарки готовы к отправке.' : '. Открыть просьбу и рецепт.'));
-      open.append(node('small', 'envelope-tier ' + L.difficulty, tierLabel(L)), node('span', 'envelope-sender', L.who.split(',')[0]));
+      open.setAttribute('aria-label', 'Письмо: ' + L.who + '. ' + (orderMark(L) || L.want.map(E.giftName).join(', ')) + (ready ? '. Подарки готовы к отправке.' : '. Открыть просьбу и рецепт.'));
+      open.append(node('small', 'envelope-tier ' + (L.choice ? 'choice-mark' : L.difficulty), orderMark(L) || tierLabel(L)), node('span', 'envelope-sender', L.who.split(',')[0]));
       const gifts = node('span', 'envelope-gifts');
-      L.want.forEach(g => gifts.append(spriteIcon('gift', g.chain, g.level, E.CHAINS[g.chain].icons[g.level - 1])));
-      open.append(gifts, node('span', 'envelope-status', (ready ? '✓ Отправить' : 'Прочитать') + ' · ' + E.orderThanks(L) + ' ♡'));
+      if (L.choice && !L.chosen) gifts.append(node('span', 'choice-symbol', '?'));
+      else L.want.forEach(g => gifts.append(spriteIcon('gift', g.chain, g.level, E.CHAINS[g.chain].icons[g.level - 1])));
+      open.append(gifts, node('span', 'envelope-status', (ready ? '✓ Отправить' : 'Прочитать') + (L.choice && !L.chosen ? '' : ' · ' + E.orderThanks(L) + ' ♡')));
       card.append(open); return card;
     }
-    const card = node('article', 'letter' + (L.retry ? ' retry' : ''));
-    card.append(node('h3', '', L.who), node('small', 'letter-kind', L.retry ? 'Повторная · точно дойдёт' : L.side ? 'Письмо из сугроба' : tierLabel(L) + ' просьба'));
+    const card = node('article', 'letter' + (L.retry ? ' retry' : '') + (L.special ? ' special-letter' : ''));
+    if (orderMark(L)) card.append(node('strong', 'order-mark', orderMark(L)));
+    card.append(node('h3', '', L.special ? specialTitle(L) : L.who), node('small', 'letter-kind', L.retry ? 'Повторная · точно дойдёт' : L.side ? 'Письмо из сугроба' : L.special ? L.who : tierLabel(L) + ' просьба'));
     const wants = node('div', 'gift-list');
     const availableGifts = E.countGifts(game.state);
     L.want.forEach((g, n) => {
@@ -1179,9 +1404,9 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
     });
     card.append(wants, node('small', 'letter-reward', E.orderThanks(L) + ' ♡ с успешным ответом'));
     const ready = E.canSend(game.state, L.id), craftable = L.want.some((_, n) => E.canCraft(game.state, L.id, n));
-    const b = button(ready ? 'Отправить' : craftable ? 'Собрать подарок' : 'Рецепт', () => ready ? execute({ type: 'send', orderId: L.id }) : showRecipe(L.id), ready || craftable ? 'ready' : '');
+    const b = button(L.special ? 'Открыть посылку' : ready ? 'Отправить' : craftable ? 'Собрать подарок' : 'Рецепт', () => ready && !L.special ? execute({ type: 'send', orderId: L.id }) : showRecipe(L.id), ready || craftable ? 'ready' : '');
     b.dataset.order = L.id; card.append(b);
-    if (ready) card.append(button('Рецепт и упаковка', () => showRecipe(L.id), 'packing-link'));
+    if (ready && !L.special) card.append(button('Рецепт и упаковка', () => showRecipe(L.id), 'packing-link'));
     return card;
   }
   function renderEnergyGifts() {
@@ -1274,11 +1499,15 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
     parts.forEach(p => { const chip = node('span', 'project-part' + (p.found ? ' found' : ''), (p.found ? '✓ ' : '○ ') + p.name); chip.title = p.found ? 'Найдено' : 'Под снегом ' + E.coord(p.cell) + ' · ' + E.SNOW[p.snow].cost + ' ♡'; project.append(chip); });
     $('goal-parts').replaceChildren(project); $('goal-progress').textContent = parts.filter(p => p.found).length + ' / 4';
     const letters = document.createDocumentFragment(); s.letters.forEach(L => letters.append(renderLetter(L, true))); $('letters').replaceChildren(letters);
-    $('extra-panel').hidden = !s.extra.length; $('extra-summary').textContent = 'Дополнительные и повторные письма · ' + s.extra.length;
-    const extra = document.createDocumentFragment(); s.extra.forEach(L => extra.append(renderLetter(L))); $('extra-letters').replaceChildren(extra);
+    const special = s.extra.filter(L => L.special), other = s.extra.filter(L => !L.special);
+    $('special-letters').hidden = !special.length;
+    $('special-letters').replaceChildren(...special.map(L => renderLetter(L)));
+    $('extra-panel').hidden = !other.length;
+    $('extra-summary').textContent = 'Дополнительные и повторные письма · ' + other.length;
+    $('extra-letters').replaceChildren(...other.map(L => renderLetter(L)));
     renderRoom(s);
     const wanted = {};
-    E.orderList(s).forEach(L => L.want.forEach((g, n) => { if (!L.packed[n]) E.recipe(g).forEach(p => { wanted[E.key(p)] = true; }); }));
+    E.orderList(s).forEach(L => L.want.forEach((g, n) => { if (!L.packed[n] && (!L.choice || L.chosen)) E.recipe(g).forEach(p => { wanted[E.key(p)] = true; }); }));
     const stations = document.createDocumentFragment();
     const sources = Object.entries(def.generators);
     if (!sources.some(([, chain]) => chain === activeProduction)) activeProduction = sources[0][1];
@@ -1328,22 +1557,26 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
         el.append(node('small', 'assembly-count', x.assembly.parts.length + '/' + E.RECIPES[x.assembly.level - 1].length));
       } else if (E.isItem(x)) {
         el.classList.add('component'); el.style.setProperty('--part-color', E.CHAINS[x.chain].color);
+        if (E.isRarePart(x)) el.classList.add('rare-part');
         icon = E.CHAINS[x.chain].icon; title = E.coord(i) + ': ' + E.label(x) + ', уровень ' + x.level;
-        el.append(node('small', 'rank', x.level), node('small', 'part-letter', { tech: 'Т', sew: 'Ш', art: 'Х' }[x.chain]));
-        if (wanted[E.key(x)]) el.classList.add('needed');
+        el.append(node('small', 'rank', x.level), node('small', 'part-letter', E.isRarePart(x) ? '✦' : { tech: 'Т', sew: 'Ш', art: 'Х' }[x.chain]));
+        if (E.isRarePart(x)) title += ' · заменяет деталь уровня 4 в рецепте вездехода';
+        if (wanted[E.key(x)] && !E.isRarePart(x)) el.classList.add('needed');
       }
       const display = x?.snow ? snowIcon(x.snow) : x?.gen ? spriteIcon('generator', x.gen, 1, icon) : E.isGift(x) ? spriteIcon('gift', x.gift.chain, x.gift.level, icon) : E.isItem(x) ? spriteIcon('part', x.chain, x.level, icon) : node('span', '', icon);
       display.classList.add('icon'); el.prepend(display); el.title = title; el.setAttribute('aria-label', title); el.setAttribute('aria-pressed', String(selected === i || snowSelection === i));
+      if (pending && (pending.from === i || pending.to === i)) el.classList.add('merge-pending');
       if (selected === i || snowSelection === i) el.classList.add('selected'); if (i === popAt) el.classList.add('pop'); cells.append(el);
     });
     $('board').replaceChildren(cells);
+    positionMergeConfirmation();
     const legend = document.createDocumentFragment();
     Object.entries(E.SNOW).forEach(([type, data]) => {
       const entry = node('span', 'snow-key'); entry.append(snowIcon(Number(type)), node('span', '', data.name + ' · ' + data.cost + ' ♡')); legend.append(entry);
     });
     $('snow-legend').replaceChildren(legend);
     $('selection').textContent = selected !== null && E.isMovable(s.board[selected]) ? E.cellName(s.board[selected]) : 'Одинаковые детали → старшая · разные по рецепту → подарок';
-    $('return').disabled = selected === null || (!E.isItem(s.board[selected]) && !E.isAssembly(s.board[selected]) && !E.isGift(s.board[selected]));
+    $('return').disabled = selected === null || E.isRarePart(s.board[selected]) || (!E.isItem(s.board[selected]) && !E.isAssembly(s.board[selected]) && !E.isGift(s.board[selected]));
     $('return').textContent = selected !== null && (E.isAssembly(s.board[selected]) || E.isGift(s.board[selected])) ? '↩ Разобрать' : '↩ Вернуть'; $('undo').disabled = !game.history.length;
     const snow = snowSelection === null ? null : s.board[snowSelection]; $('snow-panel').hidden = !snow?.snow;
     if (snow?.snow) {
@@ -1375,7 +1608,7 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
     s.bag.filter(t => t.kind !== 'tag').forEach(t => {
       const row = node('div', 'bag-row'); row.append(node('span', '', (t.kind === 'energy' ? '❄ ' : '✂ ') + t.name + (t.amount ? ' · ' + t.amount + ' ❄' : '')));
       const b = button(t.kind === 'energy' ? 'Взять' : 'Разделить выбранную', () => execute(t.kind === 'energy' ? { type: 'energy', toolId: t.id } : { type: 'split', toolId: t.id, cell: selected }));
-      b.disabled = t.kind === 'energy' ? s.energy === E.MAX_ENERGY : selected === null || !E.isItem(s.board[selected]) || s.board[selected].level < 2;
+      b.disabled = t.kind === 'energy' ? s.energy === E.MAX_ENERGY : selected === null || !E.isItem(s.board[selected]) || E.isRarePart(s.board[selected]) || s.board[selected].level < 2;
       row.append(b); items.append(row);
     });
     $('bag-items').replaceChildren(items);
@@ -1396,10 +1629,29 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
   function renderRecipe() {
     const s = game.state, L = E.findOrder(s, currentOrder);
     if (!L) { if ($('recipe-dialog').open) $('recipe-dialog').close(); return; }
-    $('recipe-title').textContent = L.who + (L.retry ? ' · повторная посылка' : ' · ' + tierLabel(L).toLowerCase() + ' просьба'); $('recipe-story').textContent = '«' + L.text + '» · За успешный ответ: ' + E.orderThanks(L) + ' ♡.';
+    $('recipe-title').textContent = L.special ? specialTitle(L) + ' · ' + orderMark(L) : L.who + ' · ' + (orderMark(L) || (L.retry ? 'повторная посылка' : tierLabel(L).toLowerCase() + ' просьба'));
+    $('recipe-story').textContent = '«' + L.text + '»' + (L.choice && !L.chosen ? '' : ' · За успешный ответ: ' + E.orderThanks(L) + ' ♡.');
     const items = document.createDocumentFragment();
+    if (L.choice) {
+      const data = E.CHOICE_LETTERS.find(x => x.id === L.choice);
+      const options = node('div', 'choice-options');
+      data.options.forEach((level, i) => {
+        const selectedOption = L.chosen && L.want[0].level === level;
+        const pick = button((selectedOption ? '✓ ' : '') + E.giftName(E.item('tech', level)), () => execute({ type: 'chooseGift', orderId: L.id, level }), selectedOption ? 'primary' : '');
+        pick.disabled = L.retry || L.packed[0] || selectedOption;
+        pick.setAttribute('aria-pressed', String(selectedOption));
+        const option = node('div', 'choice-option');
+        option.append(pick, node('p', '', data.reasons[i])); options.append(option);
+      });
+      items.append(options);
+    }
+    if (L.special === 'village' && !L.retry) {
+      const toggle = button(L.want.length === 3 ? 'Оставить два подарка' : 'Добавить третий подарок · бонус +1 ♡', () => execute({ type: 'villageExtra', orderId: L.id }));
+      toggle.disabled = !!L.packed[2];
+      items.append(toggle);
+    }
     const availableGifts = E.countGifts(s);
-    L.want.forEach((g, i) => {
+    (L.choice && !L.chosen ? [] : L.want).forEach((g, i) => {
       const box = node('section', 'gift-recipe'); box.append(giftLabel('h3', '', g, E.giftName(g) + ' · ур. ' + g.level + ' · ' + E.giftThanks(g) + ' ♡'));
       const readyGift = !L.packed[i] && (availableGifts[E.key(g)] || 0) > 0;
       if (readyGift) availableGifts[E.key(g)]--;
@@ -1407,12 +1659,19 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
         box.append(node('p', 'packed-label', L.packed[i] ? '✓ Собран на полке письма. Можно отправлять.' : '✓ Готов на поле или в запасе. Можно отправлять.'));
         const cell = s.board.findIndex(x => E.isGift(x) && E.key(x.gift) === E.key(g));
         const storeIndex = s.giftStore.findIndex(x => E.key(x) === E.key(g));
+        if (L.special && readyGift) box.append(button('Упаковать', () => execute({ type: 'packGift', orderId: L.id, giftIndex: i }), 'primary'));
         box.append(button('Разобрать на детали', () => execute(L.packed[i] ? { type: 'disassemble', orderId: L.id, giftIndex: i } : cell >= 0 ? { type: 'disassemble', cell } : { type: 'disassemble', storeIndex })));
       }
       else {
         const have = E.count(s), components = node('div', 'recipe-components');
         E.recipe(g).forEach(p => { const ready = (have[E.key(p)] || 0) > 0; if (ready) have[E.key(p)]--; const row = node('div', 'recipe-component'); row.append(partChip(p, ready), node('span', '', E.label(p)), node('b', '', ready ? '✓' : '○')); components.append(row); });
         box.append(components); box.append(node('p', 'field-craft-hint', g.level >= 7 ? 'На поле: начни со старшей детали, добавь остальные уровни в сборку. Можно также собрать кнопкой ниже.' : 'На поле: перетащи одну нужную деталь на другую — получится подарок. Можно также собрать кнопкой ниже.')); const b = button('Собрать подарок', () => execute({ type: 'craft', orderId: L.id, giftIndex: i }), 'primary'); b.disabled = !E.canCraft(s, L.id, i); box.append(b);
+        if (E.rareFits(g) && s.board.some(E.isRarePart)) {
+          box.append(node('p', 'field-craft-hint', 'Морозостойкая плата может заменить деталь уровня 4.'));
+          const rare = button('Собрать с редкой платой', () => execute({ type: 'craft', orderId: L.id, giftIndex: i, useRare: true }), 'primary');
+          rare.disabled = !E.canCraft(s, L.id, i, true);
+          box.append(rare);
+        }
       }
       items.append(box);
     }); $('recipe-items').replaceChildren(items);
@@ -1464,7 +1723,7 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
   function clearHover() { document.querySelectorAll('.over').forEach(x => x.classList.remove('over')); }
   function finishDrag() {
     const d = drag; drag = null; if (d && $('board').hasPointerCapture(d.pointer)) $('board').releasePointerCapture(d.pointer);
-    if (ghost) ghost.remove(); ghost = null; clearHover(); $('return').disabled = selected === null || (!E.isItem(game.state.board[selected]) && !E.isAssembly(game.state.board[selected]) && !E.isGift(game.state.board[selected]));
+    if (ghost) ghost.remove(); ghost = null; clearHover(); $('return').disabled = selected === null || E.isRarePart(game.state.board[selected]) || (!E.isItem(game.state.board[selected]) && !E.isAssembly(game.state.board[selected]) && !E.isGift(game.state.board[selected]));
   }
   window.addEventListener('pointermove', e => {
     if (!drag || drag.pointer !== e.pointerId || !drag.draggable) return;
@@ -1478,7 +1737,12 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
   });
   window.addEventListener('pointercancel', finishDrag); window.addEventListener('blur', finishDrag);
   $('board').addEventListener('lostpointercapture', () => { if (drag) finishDrag(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { selected = null; snowSelection = null; clearPending(); finishDrag(); render(); tip(intro()); } });
+  window.addEventListener('scroll', positionMergeConfirmation, { passive: true });
+  window.addEventListener('resize', positionMergeConfirmation);
+  document.addEventListener('pointerdown', e => {
+    if (pending && !e.target.closest('#merge-confirmation')) clearPending();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (pending) { clearPending(true); return; } selected = null; snowSelection = null; clearPending(); finishDrag(); render(); tip(intro()); } });
   $('return').addEventListener('click', () => { if (selected !== null) execute({ type: 'return', from: selected }); });
   $('production-select').addEventListener('change', () => {
     const chain = $('production-select').value;
@@ -1486,7 +1750,12 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
     activeProduction = chain; selected = null; snowSelection = null; clearPending(); render();
   });
   $('undo').addEventListener('click', () => execute({ type: 'undo' }));
-  $('confirm-merge').addEventListener('click', () => { if (pending) execute({ ...pending, force: true }); });
+  $('cancel-merge').addEventListener('click', () => clearPending(true));
+  $('confirm-merge').addEventListener('click', () => {
+    if (!pending) return;
+    const target = pending.to;
+    if (execute({ ...pending, force: true })) boardCell(target)?.focus({ preventScroll: true });
+  });
   $('melt').addEventListener('click', () => { if (snowSelection !== null) execute({ type: 'melt', cell: snowSelection }); });
   $('build').addEventListener('click', () => execute({ type: 'build' }));
   $('next').addEventListener('click', () => { if (execute({ type: 'next' })) { tip(intro()); $('shift-title').scrollIntoView({ block: 'start' }); } });
@@ -1497,8 +1766,22 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
   $('reply-close').addEventListener('click', () => $('reply-dialog').close());
   $('reply-claim').addEventListener('click', () => { if (currentMail !== null && execute({ type: 'claim', mailId: currentMail })) { $('reply-dialog').close(); if ($('album-dialog').open) showAlbum(); } });
   $('help').addEventListener('click', () => $('help-dialog').showModal()); $('help-close').addEventListener('click', () => $('help-dialog').close());
-  $('restart').addEventListener('click', () => $('restart-dialog').showModal()); $('restart-cancel').addEventListener('click', () => $('restart-dialog').close());
-  $('restart-confirm').addEventListener('click', () => { finishDrag(); game = new E.Game(); $('find-feedback').hidden = true; selected = null; snowSelection = null; currentOrder = null; currentMail = null; clearPending(); $('restart-dialog').close(); save(); render(); tip(intro()); });
+  $('restart').addEventListener('click', () => $('restart-dialog').showModal());
+  $('restart-cancel').addEventListener('click', () => $('restart-dialog').close());
+  $('restart-confirm').addEventListener('click', () => {
+    finishDrag();
+    game = new E.Game();
+    $('find-feedback').hidden = true;
+    selected = null;
+    snowSelection = null;
+    currentOrder = null;
+    currentMail = null;
+    clearPending();
+    $('restart-dialog').close();
+    save();
+    render();
+    tip(intro());
+  });
   document.addEventListener('visibilitychange', () => { if (document.hidden) { finishDrag(); save(); } });
   setInterval(() => { const energy = game.state.energy; game.regen(); if (energy !== game.state.energy) { save(); if (!drag && !document.querySelector('dialog[open]')) render(); } updateEnergy(); updateMailbox(); }, 1000);
   const THEME_KEY = 'pochta-background-theme';

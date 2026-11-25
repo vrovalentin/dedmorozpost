@@ -134,3 +134,30 @@ dialog button:focus-visible{outline:3px solid #b49bd5;outline-offset:3px}
 dialog button:disabled{background:#e3d7f1;color:#78618e;opacity:1;cursor:default;box-shadow:none}
 dialog .gift-recipe{border-color:#e8e5ed}dialog .dialog-heading button{background:#6c3bb2;color:#fff}dialog .dialog-heading button:hover{background:#593092}
 dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{border-color:#e8e5ed}dialog .part-chip{background:#fff}dialog .part-chip.available{background:#edf4eb}
+
+.envelope-tier.choice-mark,.order-mark{background:#552881;color:#fff;border:1px solid #7c48a6}
+.envelope-tier.choice-mark{font-size:clamp(6px,1.2vw,9px);white-space:nowrap}
+.choice-symbol{font-weight:800;color:#552881;font-size:1.4em}
+.special-letter{border:2px solid #b592dc}
+.order-mark{align-self:flex-start;padding:4px 7px;border-radius:5px;font-size:11px;font-weight:700}
+.choice-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(155px,100%),1fr));gap:8px;margin-bottom:12px}
+.choice-option{border:1px solid #ded0eb;border-radius:8px;padding:8px}
+.choice-option button{width:100%}
+.choice-option p{font-size:12px;margin:6px 0 0}
+.tabletop-board>.cell.rare-part{outline:2px solid #8b3ac3;outline-offset:-2px}
+.cell.rare-part .part-letter{background:#552881;color:#fff}
+#special-letters .letter{color:var(--ink)}
+#special-letters .letter:before{content:none}
+#special-letters .letter button{background:#552881;color:#fff;box-shadow:none}
+
+.heading{flex-wrap:wrap}
+.heading-actions{display:flex;align-items:center;gap:9px}
+.heading-actions .restart-button{min-height:40px;padding:6px 11px;background:#ffffff12;border:1px solid #e9dafa70;color:#fff;border-radius:8px;white-space:nowrap;font-size:12px}
+
+.merge-confirmation{position:fixed;z-index:40;width:max-content;max-width:min(300px,calc(100vw - 16px));padding:12px;background:#fff;color:#302341;border:1px solid #b898d8;border-radius:10px;box-shadow:0 5px 20px #24153755}
+.merge-confirmation[hidden]{display:none}
+.merge-confirmation p{font-size:13px;margin:0 0 9px}
+.merge-confirmation-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:6px}
+.merge-confirmation-actions button{min-height:40px;font-size:12px;background:#eee4f7;color:#4d2b70}
+.merge-confirmation-actions .primary{background:#552881;color:#fff;box-shadow:none}
+.tabletop-board>.cell.merge-pending{outline:2px solid #7435a7;outline-offset:-2px}

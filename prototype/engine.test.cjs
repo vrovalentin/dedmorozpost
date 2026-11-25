@@ -73,6 +73,7 @@ test('Exact recipes consume components, gifts live outside the board, and level 
   assert(!f.g.act({ type: 'craft', orderId: L.id, giftIndex: 0 }).ok);
   assert(f.g.undo().ok); assert.equal(f.g.state.board.filter(E.isItem).length, before);
   const g = fixture(); const order = g.g.state.letters[0]; order.storyId = null; order.want = [{ chain: 'tech', level: 8 }]; order.packed = [false];
+  g.g.state.compactStart = false;
   g.g.state.board = E.makeBoard(0).map(x => E.isItem(x) ? null : x);
   [8, 6, 1, 2].forEach((level, n) => { g.g.state.board[7 + n] = E.item('tech', level); });
   assert(!E.canCraft(g.g.state, order.id, 0)); g.g.state.board[11] = E.item('tech', 3); assert(E.canCraft(g.g.state, order.id, 0));
@@ -195,7 +196,7 @@ test('Board-crafted gifts send once, accept duplicate quantities, and undo resto
 });
 test('Long assembly survives reload and returns all components; no space means no loss', () => {
   const f = fixture(); const s = f.g.state;
-  s.board = E.makeBoard(0).map(x => E.isItem(x) ? null : x);
+  s.compactStart = false; s.board = E.makeBoard(0).map(x => E.isItem(x) ? null : x);
   s.board[7] = E.item('tech', 7); s.board[8] = E.item('tech', 5); s.board[9] = E.item('tech', 1);
   act(f, { type: 'drop', from: 7, to: 8 }); assert(E.isAssembly(s.board[8])); assert.equal(s.board[8].assembly.parts.length, 2);
   const reload = new E.Game(copy(s), f.g.now); assert(E.isAssembly(reload.state.board[8]));
@@ -218,7 +219,7 @@ test('Finished gifts carry to next workshop in storage and count toward sending'
 test('Finished gifts return the exact recipe for every rank; packing and storage can be dismantled too', () => {
   for (let level = 1; level <= 8; level++) {
     const f = fixture(), s = f.g.state;
-    s.board = E.makeBoard(0).map(x => E.isItem(x) ? null : x);
+    s.compactStart = false; s.board = E.makeBoard(0).map(x => E.isItem(x) ? null : x);
     s.board[7] = { gift: E.item('tech', level) };
     act(f, { type: 'return', from: 7 });
     assert.deepEqual(s.board.filter(E.isItem).map(x => x.level).sort(), [...E.RECIPES[level - 1]].sort());
@@ -358,10 +359,104 @@ test('New orders follow gift ages and never duplicate an active personal story',
     const L=f.g.state.letters[n%3];
     const level=Math.max(...L.want.map(g=>g.level));assert(level<=2?L.age>=5&&L.age<=6:level<=5?L.age>=7&&L.age<=9:L.age>=10&&L.age<=12);
     if(L.storyId)seen.push(L.storyId);
+    if (L.choice && !L.chosen) act(f,{type:'chooseGift',orderId:L.id,level:L.want[0].level});
     L.packed=L.want.map(()=>true);act(f,{type:'send',orderId:L.id});
     const active=[...E.orderList(f.g.state),...f.g.state.mail.filter(m=>!m.claimed).map(m=>m.order)].map(L=>L.storyId).filter(Boolean);
     assert.equal(new Set(active).size,active.length);
     f.advance(E.MAIL_MS);act(f,{type:'claim',mailId:f.g.state.mail.at(-1).id});
   }
   assert(new Set(seen).size<seen.length,'Stories can be reused after an interval');
+});
+
+test('Compact workshop keeps a playable first turn and old saves keep their open cells', () => {
+  const f = fixture(), s = f.g.state;
+  assert.equal(E.makeBoard(0).filter(x => x === null).length - s.board.filter(x => x === null).length, 3);
+  fulfill(f);
+  assert.equal(s.thanks, 1);
+  act(f, { type: 'melt', cell: E.at('A2') });
+  const old = E.fresh(1000000);
+  old.version = 21;
+  delete old.compactStart;
+  old.board = E.makeBoard(0);
+  const updated = E.migrate(old);
+  assert.equal(updated.version, E.VERSION);
+  assert.deepEqual(updated.board, old.board);
+  assert.deepEqual(updated.letters, old.letters);
+});
+
+test('The rare plate is found once and survives dismantling both kinds of crafting', () => {
+  const f = fixture(), s = f.g.state;
+  const cell = E.at('C6');
+  clearTo(f, cell);
+  assert.deepEqual(s.board[cell], E.RARE_PART);
+  assert(!f.g.act({ type: 'return', from: cell }).ok);
+  assert(!f.g.act({ type: 'melt', cell }).ok);
+  const order = s.letters[2];
+  order.storyId = null;
+  order.want = [E.item('tech', 6)];
+  const spare = s.board.indexOf(null);
+  s.board[spare] = E.item('tech', 6);
+  assert(!E.canCraft(s, order.id, 0));
+  assert(E.canCraft(s, order.id, 0, true));
+  act(f, { type: 'craft', orderId: order.id, giftIndex: 0, useRare: true });
+  assert(s.board.every(x => !E.isRarePart(x)));
+  const reload = new E.Game(copy(s), f.g.now);
+  assert.deepEqual(reload.state.letters[2].rarePacked, [0]);
+  act(f, { type: 'disassemble', orderId: order.id, giftIndex: 0 });
+  const part = s.board.findIndex(E.isRarePart);
+  const other = s.board.findIndex(x => E.isItem(x) && x.level === 6);
+  act(f, { type: 'drop', from: part, to: other });
+  assert(s.board[other].gift.rare);
+  act(f, { type: 'disassemble', cell: other });
+  assert.equal(s.board.filter(E.isRarePart).length, 1);
+});
+
+test('Choice letters use approved age bands, appear once, and keep the selected gift on retry', () => {
+  const f = fixture(), s = f.g.state;
+  fulfill(f); fulfill(f);
+  fulfill(f, s.letters[1]);
+  const first = s.letters[1];
+  assert.equal(first.choice, 'garage');
+  assert(!E.canSend(s, first.id));
+  assert(!f.g.act({ type: 'chooseGift', orderId: first.id, level: 3 }).ok);
+  act(f, { type: 'chooseGift', orderId: first.id, level: 2 });
+  f.g.random = () => .8;
+  fulfill(f, first);
+  assert.equal(s.extra.at(-1).want[0].level, 2);
+  assert(!f.g.act({ type: 'chooseGift', orderId: first.id, level: 1 }).ok);
+  f.g.random = () => .5;
+  fulfill(f, s.extra.at(-1));
+  for (let n = 0; n < 3; n++) fulfill(f, s.letters[2]);
+  assert(s.unlocked.tech >= 4);
+  fulfill(f, s.letters[1]);
+  const second = s.letters[1];
+  assert.equal(second.choice, 'mission');
+  act(f, { type: 'chooseGift', orderId: second.id, level: 4 });
+  fulfill(f, second);
+  assert(!s.letters[1].choice);
+});
+
+test('Special deliveries are one-offs, count twin gifts separately and reward the optional third gift', () => {
+  const f = fixture(), s = f.g.state;
+  for (let n = 0; n < 8; n++) fulfill(f);
+  const twins = s.extra.find(L => L.special === 'twins');
+  const firstCell = s.board.indexOf(null);
+  s.board[firstCell] = { gift: E.item('tech', 1) };
+  assert(!E.canSend(s, twins.id));
+  act(f, { type: 'packGift', orderId: twins.id, giftIndex: 0 });
+  assert.equal(s.board[firstCell], null);
+  assert(!E.canSend(s, twins.id));
+  fulfill(f, twins);
+  for (let n = 0; n < 8; n++) fulfill(f);
+  const village = s.extra.find(L => L.special === 'village');
+  pack(f, village);
+  assert(E.canSend(s, village.id));
+  assert.equal(E.orderThanks(village), 2);
+  act(f, { type: 'villageExtra', orderId: village.id });
+  assert(!E.canSend(s, village.id));
+  assert.equal(E.orderThanks(village), 4);
+  const mailed = fulfill(f, village);
+  assert.equal(mailed.rewardThanks, 4);
+  for (let n = 0; n < 8; n++) fulfill(f);
+  assert(!s.extra.some(L => L.special));
 });
