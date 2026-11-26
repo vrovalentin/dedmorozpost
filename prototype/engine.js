@@ -3,7 +3,7 @@
   'use strict';
   const C = typeof module !== 'undefined' && module.exports ? require('./content.js') : root.PostContent;
   const { CHAINS, RECIPES, SNOW, SHIFTS, CACHES, at, coord, makeBoard, item } = C;
-  const VERSION = 22, MAX_ENERGY = 40, REGEN_MS = 30000, MAIL_MS = 20000;
+  const VERSION = 24, LETTER_SLOTS = 3, MAX_ENERGY = 40, REGEN_MS = 30000, MAIL_MS = 20000;
   const clone = x => JSON.parse(JSON.stringify(x));
   const key = x => x.chain + ':' + x.level;
   const isItem = x => !!x && Object.hasOwn(CHAINS, x.chain) && Number.isInteger(x.level) && x.level >= 1 && x.level <= 8;
@@ -50,8 +50,9 @@
   }
   const cacheAt = (shift, i) => CACHES[shift][coord(i)];
   const isCleared = (s, shift, cell) => s.cleared.some(x => x.shift === shift && x.cell === cell);
-  const parts = s => Object.entries(CACHES[s.shift]).filter(([, c]) => c.required).map(([p, c]) => ({ ...c, cell: at(p), found: isCleared(s, s.shift, at(p)) }));
+  const parts = s => Object.entries(CACHES[s.shift]).filter(([, c]) => c.required).map(([p, c]) => ({ ...c, cell: at(p), found: isCleared(s, s.shift, at(p)) && !s.board[at(p)]?.find }));
   const complete = s => parts(s).every(x => x.found);
+  const visibleLetters = s => s.letters.slice(0, LETTER_SLOTS);
   const orderList = s => [...s.letters, ...s.extra];
   const findOrder = (s, id) => orderList(s).find(L => L.id === id);
   function neighbors(i) {
@@ -59,7 +60,7 @@
     for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (c + dc >= 0 && c + dc < 7 && r + dr >= 1 && r + dr < 9) out.push((r + dr) * 7 + c + dc);
     return out;
   }
-  const accessible = (s, i) => !!s.board[i]?.snow && neighbors(i).some(n => s.board[n] === null || isMovable(s.board[n]));
+  const accessible = (s, i) => !!s.board[i]?.snow && neighbors(i).some(n => s.board[n] === null || !!s.board[n]?.find || isMovable(s.board[n]));
   function count(s) { const n = {}; s.board.forEach(x => { if (isItem(x) && !isRarePart(x)) n[key(x)] = (n[key(x)] || 0) + 1; }); return n; }
   const recipe = gift => RECIPES[gift.level - 1].map(l => item(gift.chain, l));
   function craftSlots(s, gift, useRare = false) {
@@ -109,15 +110,15 @@
       want: levels.map(level => item('tech', level)), packed: levels.map(() => false), protected: false, retry: false, side: false };
   }
   function offerSpecial(s) {
-    if (s.extra.some(L => L.special) || s.mail.some(m => m.order.special && !m.claimed)) return;
+    if (s.letters.some(L => L.special) || s.mail.some(m => m.order.special && !m.claimed)) return;
     const history = letterHistory(s), delivered = ordinarySuccesses(s);
     const data = C.SPECIAL_LETTERS.find(L => delivered >= L.threshold && !history.some(p => p.special === L.id));
-    if (data) s.extra.push({ ...eventLetter(s, data, 'special', data.levels), special: data.id });
+    if (data) s.letters.push({ ...eventLetter(s, data, 'special', data.levels), special: data.id });
   }
   const BOY_NAMES = ['Миша', 'Ваня', 'Тимофей', 'Егор', 'Гриша', 'Лёва', 'Коля', 'Марк', 'Петя', 'Тимур'];
   const GIRL_NAMES = ['Мила', 'Аня', 'Вера', 'Соня', 'Лиза', 'Маша', 'Катя', 'Ника', 'Вика', 'Оля'];
   const MIXED_NAMES = BOY_NAMES.flatMap((name, i) => [name, GIRL_NAMES[i]]);
-  function newLetter(s, side = false, difficulty = 'easy') {
+  function newLetter(s, side = false, difficulty = 'easy', previous = null) {
     if (!side && difficulty === 'medium' && s.shift !== 1) {
       const history = letterHistory(s), delivered = ordinarySuccesses(s);
       const data = C.CHOICE_LETTERS.find(L => delivered >= L.threshold && s.unlocked.tech >= Math.max(...L.options) && !history.some(p => p.choice === L.id));
@@ -127,7 +128,8 @@
     const chain = chains[(sequence + chains.length - 1) % chains.length], issued = s.chainIssued[chain]++;
     const hardSent = s.mail.filter(m => m.attempt === 1 && m.order.difficulty === 'hard' && m.order.want[0].chain === chain).length;
     const cap = Math.min(8, Math.max(3, s.unlocked[chain], 3 + Math.floor(hardSent / 2)));
-    const level = side || difficulty === 'easy' ? 1 + issued % 2 : difficulty === 'medium' ? Math.min(5, Math.max(2, cap - 1)) : cap;
+    const easyLevel = previous?.want[0].chain === chain && previous.want[0].level <= 2 ? 3 - previous.want[0].level : 1 + issued % 2;
+    const level = side || difficulty === 'easy' ? easyLevel : difficulty === 'medium' ? Math.min(5, Math.max(2, cap - 1)) : cap;
     s.unlocked[chain] = Math.max(s.unlocked[chain], level);
     const names = [BOY_NAMES, GIRL_NAMES, MIXED_NAMES][s.shift];
     const history = [...orderList(s), ...s.mail.map(m => m.order)];
@@ -160,7 +162,7 @@
       for (const k of ['energy', 'thanks', 'issued', 'nextId', 'nextMailId', 'nextToolId', 'moves', 'rng']) if (!Number.isInteger(s[k]) || s[k] < 0) return false;
       if (!s.nextId || !s.nextMailId || !s.nextToolId || !s.rng || s.rng > 0xffffffff || s.energy > MAX_ENERGY || ![1, 10].includes(s.speed) || !Number.isFinite(s.energyAt) || s.energyAt < 0) return false;
       for (const k of ['energyGiftClaims', 'board', 'giftStore', 'letters', 'extra', 'mail', 'cleared', 'bag', 'decor', 'postcards', 'built']) if (!Array.isArray(s[k])) return false;
-      if (s.board.length !== 63 || s.letters.length !== 3 || ORDER_TIERS.some(tier => s.letters.filter(L => L?.difficulty === tier).length !== 1)) return false;
+      if (s.board.length !== 63 || s.letters.length < LETTER_SLOTS || s.letters.length > LETTER_SLOTS + 1 || ORDER_TIERS.some(tier => s.letters.filter(L => L?.difficulty === tier).length !== 1) || s.letters.some(L => !ORDER_TIERS.includes(L?.difficulty) && !L?.special) || s.extra.some(L => L?.special)) return false;
       if (new Set(s.energyGiftClaims).size !== s.energyGiftClaims.length || !s.energyGiftClaims.every(n => ENERGY_GIFTS.some(g => g.threshold === n) && completedLetters(s) >= n)) return false;
       const allowed = Object.values(SHIFTS[s.shift].generators);
       if (!s.giftStore.every(g => validGift(g) && allowed.includes(g.chain))) return false;
@@ -200,6 +202,9 @@
       for (let i = 0; i < 63; i++) {
         const x = s.board[i];
         if (i < 7 || (initial[i]?.snow && !isCleared(s, s.shift, i))) { if (JSON.stringify(x) !== JSON.stringify(initial[i])) return false; }
+        else if (x?.find === true) {
+          if (Object.keys(x).length !== 1 || !cacheAt(s.shift, i) || !isCleared(s, s.shift, i)) return false;
+        }
         else if (x !== null && !((isItem(x) && (Object.keys(x).length === 2 || (Object.keys(x).length === 3 && isRarePart(x))) && allowed.includes(x.chain)) || (isGift(x) && allowed.includes(x.gift.chain)) || (isAssembly(x) && allowed.includes(x.assembly.chain)))) return false;
       }
       // Every cleared tile must have been reachable at the time it was opened.
@@ -208,7 +213,7 @@
         for (const c of s.cleared.filter(x => x.shift === shift)) { if (!accessible(temp, c.cell)) return false; temp.board[c.cell] = null; }
       }
       if (new Set(s.built).size !== s.built.length || !s.built.every(n => Number.isInteger(n) && n >= 0 && n <= s.shift)) return false;
-      for (const n of s.built) if (!Object.keys(CACHES[n]).filter(p => CACHES[n][p].required).every(p => isCleared(s, n, at(p)))) return false;
+      for (const n of s.built) if (!Object.keys(CACHES[n]).filter(p => CACHES[n][p].required).every(p => isCleared(s, n, at(p)) && (n !== s.shift || !s.board[at(p)]?.find))) return false;
       for (let n = 0; n < s.shift; n++) if (!s.built.includes(n)) return false;
       const toolIds = new Set();
       for (const t of s.bag) {
@@ -222,8 +227,11 @@
   }
   function migrate(saved) {
     try {
-      if (saved?.version === 21) {
+      if ([21, 22, 23].includes(saved?.version)) {
         const candidate = { ...clone(saved), version: VERSION };
+        const special = candidate.extra.filter(L => L?.special);
+        candidate.extra = candidate.extra.filter(L => !L?.special);
+        candidate.letters.push(...special);
         return validate(candidate) ? candidate : null;
       }
       if ([8, 9, 10, 12, 20].includes(saved?.version)) {
@@ -278,6 +286,7 @@
       }
       if (a.type === 'next') {
         if (!s.built.includes(s.shift) || s.shift === 2) return fail('Сначала собери мастерскую из найденных частей.');
+        if (b.some(x => x?.find)) return fail('Забери открытые находки со стола перед переходом.');
         s.giftStore.push(...b.filter(isGift).map(x => clone(x.gift)));
         const rare = b.find(isRarePart);
         s.shift++; s.board = makeBoard(s.shift);
@@ -378,8 +387,14 @@
         const outcome = roll < success ? 'success' : roll < success + chance.lost ? 'lost' : 'damaged';
         s.mail.push({ id: s.nextMailId++, order: clone(L), attempt: L.retry ? 2 : 1, rewardThanks: orderThanks(L), outcome, bonusEnergy: outcome === 'success' && this.roll() < .2 ? 1 : 0, dueAt: this.now() + MAIL_MS / s.speed, claimed: false, shift: s.shift });
         const normal = s.letters.findIndex(x => x.id === L.id);
-        if (normal >= 0) s.letters[normal] = newLetter(s, false, L.difficulty); else s.extra.splice(s.extra.findIndex(x => x.id === L.id), 1);
-        offerSpecial(s);
+        if (normal >= 0) {
+          s.letters.splice(normal, 1);
+          offerSpecial(s);
+          if (!L.special) s.letters.push(newLetter(s, false, L.difficulty, L));
+        } else {
+          s.extra.splice(s.extra.findIndex(x => x.id === L.id), 1);
+          offerSpecial(s);
+        }
         s.moves++;
         return ok('Посылка для ' + L.who + ' в пути. Сердечко придёт только с успешным ответом.');
       }
@@ -398,20 +413,31 @@
         }
         if (m.outcome === 'damaged') { offerSpecial(s); return ok('Подарок повредился в дороге. За эту посылку нет сердечка. Новые письма продолжают приходить.'); }
         const retry = clone(m.order); retry.retry = true; retry.protected = false; retry.packed = retry.want.map(() => false); delete retry.rarePacked;
-        s.extra.push(retry);
+        (retry.special ? s.letters : s.extra).push(retry);
         return ok('Посылка потерялась. Повторный заказ добавлен под письмами; он гарантированно дойдёт.');
       }
       if (a.type === 'melt') {
         const x = b[a.cell]; if (!x?.snow) return fail('Здесь нет снега.');
         if (!accessible(s, a.cell)) return fail('Сначала расчисти соседнюю клетку. Добираемся от открытого стола по четырём сторонам.');
         const cost = SNOW[x.snow].cost; if (s.thanks < cost) return fail('Нужно ' + cost + ' ♡. Отправляй подарки и открывай успешные ответные письма.');
-        this.remember(); s.thanks -= cost; b[a.cell] = null; s.cleared.push({ shift: s.shift, cell: a.cell }); s.moves++;
         const loot = cacheAt(s.shift, a.cell);
+        this.remember();
+        s.thanks -= cost;
+        b[a.cell] = loot ? { find: true } : null;
+        s.cleared.push({ shift: s.shift, cell: a.cell });
+        s.moves++;
+        return ok(loot ? 'Под снегом: ' + loot.name + '. Нажми на находку, чтобы забрать.' : 'Убрали снег. Стало больше места для работы.', a.cell);
+      }
+      if (a.type === 'pickup') {
+        const loot = b[a.cell]?.find && cacheAt(s.shift, a.cell);
+        if (!loot) return fail('Здесь нет открытой находки.');
+        this.remember();
+        b[a.cell] = null;
+        s.moves++;
         if (loot?.kind === 'rare') {
           b[a.cell] = clone(C.RARE_PART);
           return ok('Нашли морозостойкую плату! Она заменяет деталь уровня 4 в рецепте вездехода.', a.cell);
         }
-        if (!loot) return ok('Убрали снег. Стало больше места для работы.', a.cell);
         if (['energy', 'scissors', 'tag'].includes(loot.kind)) s.bag.push({ id: s.nextToolId++, ...clone(loot) });
         if (loot.kind === 'decor') s.decor.push({ ...clone(loot), source: s.shift + ':' + a.cell });
         if (loot.kind === 'postcard') {
@@ -452,10 +478,11 @@
         const chain = isItem(x) ? x.chain : x.assembly.chain;
         return y.gen === chain ? this.act({ type: 'return', from }) : fail('У этой детали другой генератор.');
       }
+      if (y?.find) return fail('Сначала забери находку с этой клетки.');
       if (y?.snow || y?.blocked) return fail('Сначала расчисти снег за спасибо.');
       if (isItem(x) && isItem(y) && !isRarePart(x) && !isRarePart(y) && key(x) === key(y)) {
         if (x.level === 8) return fail('Это максимальный уровень запчасти. Её используют в рецепте.');
-        const need = orderList(s).filter(L => !L.choice || L.chosen).flatMap(L => L.want.flatMap((g, n) => L.packed[n] ? [] : recipe(g))).filter(p => key(p) === key(x)).length;
+        const need = [...visibleLetters(s), ...s.extra].filter(L => !L.choice || L.chosen).flatMap(L => L.want.flatMap((g, n) => L.packed[n] ? [] : recipe(g))).filter(p => key(p) === key(x)).length;
         if (!a.force && need && count(s)[key(x)] - 2 < need) return { ok: false, warning: true, text: label(x) + ' нужен в рецепте.' };
         this.remember(); b[from] = null; b[to] = item(x.chain, x.level + 1); s.moves++;
         return ok(label(b[to]) + ' · уровень ' + b[to].level, to);
@@ -469,6 +496,6 @@
       return ok(y ? 'Поменяли запчасти местами.' : 'Переместили запчасть.', to);
     }
   }
-  const api = { ...C, VERSION, MAX_ENERGY, REGEN_MS, MAIL_MS, Game, fresh, validate, migrate, isItem, isRarePart, rareFits, isGift, isAssembly, isMovable, cellName, combine, countGifts, ORDER_TIERS, ENERGY_GIFTS, completedLetters, giftThanks, orderThanks, label, giftName, key, recipe, count, canCraft, canSend, findOrder, orderList, neighbors, accessible, parts, complete, cacheAt, isCleared, rates };
+  const api = { ...C, VERSION, MAX_ENERGY, REGEN_MS, MAIL_MS, Game, fresh, validate, migrate, isItem, isRarePart, rareFits, isGift, isAssembly, isMovable, cellName, combine, countGifts, ORDER_TIERS, ENERGY_GIFTS, completedLetters, giftThanks, orderThanks, label, giftName, key, recipe, count, canCraft, canSend, findOrder, visibleLetters, orderList, neighbors, accessible, parts, complete, cacheAt, isCleared, rates };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.PostGame = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

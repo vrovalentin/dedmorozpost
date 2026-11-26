@@ -13,12 +13,13 @@ function obtain(f, chain, level, reserved = new Set()) {
   act(f, { type: 'drop', from: a, to: c, force: true }); return c;
 }
 function pack(f, L) {
+  if (L.choice && !L.chosen) act(f, { type: 'chooseGift', orderId: L.id, level: L.want[0].level });
   for (let n = 0; n < L.want.length; n++) if (!L.packed[n]) {
     const reserved = new Set(); for (const p of E.recipe(L.want[n])) reserved.add(obtain(f, p.chain, p.level, reserved));
     act(f, { type: 'craft', orderId: L.id, giftIndex: n });
   }
 }
-function fulfill(f, L = f.g.state.letters[0], claim = true) {
+function fulfill(f, L = f.g.state.letters.find(L => L.difficulty === 'easy'), claim = true) {
   pack(f, L); act(f, { type: 'send', orderId: L.id }); const m = f.g.state.mail.at(-1);
   if (claim) { f.advance(E.MAIL_MS / f.g.state.speed); act(f, { type: 'claim', mailId: m.id }); }
   return m;
@@ -27,7 +28,7 @@ function earn(f, amount) {
   let guard = 0;
   while (f.g.state.thanks < amount) {
     assert(++guard < 100);
-    const L = E.orderList(f.g.state).reduce((best, x) => {
+    const L = [...E.visibleLetters(f.g.state), ...f.g.state.extra].reduce((best, x) => {
       const cost = order => order.want.reduce((sum, g) => sum + E.recipe(g).reduce((n, p) => n + 2 ** (p.level - 1), 0), 0);
       return cost(x) < cost(best) ? x : best;
     }); fulfill(f, L);
@@ -51,7 +52,7 @@ function pathTo(g, target) {
   assert(p >= 7); return path;
 }
 function clearTo(f, cell) {
-  for (const p of pathTo(f.g, cell)) { earn(f, E.SNOW[f.g.state.board[p].snow].cost); act(f, { type: 'melt', cell: p }); }
+  for (const p of pathTo(f.g, cell)) { earn(f, E.SNOW[f.g.state.board[p].snow].cost); act(f, { type: 'melt', cell: p }); if (f.g.state.board[p]?.find) act(f, { type: 'pickup', cell: p }); }
 }
 function finish(f) { for (const p of E.parts(f.g.state)) if (!p.found) clearTo(f, p.cell); act(f, { type: 'build' }); }
 
@@ -120,7 +121,7 @@ test('All three workshop goals are reachable by real gameplay; four parts then e
     finish(f); assert(E.complete(f.g.state)); assert(f.g.state.built.includes(shift));
     const saved = copy(f.g.state), reload = new E.Game(saved, f.g.now); assert.deepEqual(reload.state, saved);
     if (shift < 2) {
-      const L = f.g.state.letters[0]; pack(f, L);
+      const L = f.g.state.letters.find(L => L.difficulty === 'easy'); pack(f, L);
       const letters = copy(f.g.state.letters), energy = f.g.state.energy, thanks = f.g.state.thanks;
       act(f, { type: 'next' }); assert.deepEqual(f.g.state.letters, letters); assert.equal(f.g.state.energy, energy); assert.equal(f.g.state.thanks, thanks); assert.equal(f.g.history.length, 0);
       assert.deepEqual(f.g.state.board, E.makeBoard(shift + 1));
@@ -211,7 +212,7 @@ test('Long assembly survives reload and returns all components; no space means n
 test('Finished gifts carry to next workshop in storage and count toward sending', () => {
   const f = fixture(); finish(f);
   const gift = E.combine(E.item('tech', 2), E.item('tech', 1)), free = f.g.state.board.indexOf(null); f.g.state.board[free] = gift;
-  const original = f.g.state.letters[0]; original.storyId = null; original.want = [E.item('tech', 1)]; original.packed = [false];
+  const original = f.g.state.letters.find(L => L.difficulty === 'easy'); original.storyId = null; original.want = [E.item('tech', 1)]; original.packed = [false];
   act(f, { type: 'next' }); assert.equal(f.g.state.giftStore.length, 1); assert(E.canSend(f.g.state, original.id));
   act(f, { type: 'send', orderId: original.id }); assert.equal(f.g.state.giftStore.length, 0);
 });
@@ -284,8 +285,8 @@ test('A lost high-level gift pays its full reward once after retry; damage still
 
 test('Late requests still include simple gifts and permanently upgraded generators stay upgraded', () => {
   const f=fixture();
-  for(let n=0;n<80;n++) { const L=f.g.state.letters[n % 3]; L.packed=L.want.map(()=>true); act(f,{type:'send',orderId:L.id}); assert.deepEqual(f.g.state.letters.map(L=>L.difficulty), ['easy','medium','hard']); assert(f.g.state.letters[0].want[0].level<=2); }
-  assert.equal(f.g.state.letters[2].want[0].level,8); assert.equal(f.g.state.unlocked.tech,8);
+  for(let n=0;n<80;n++) { const L=f.g.state.letters[n % 3]; L.packed=L.want.map(()=>true); act(f,{type:'send',orderId:L.id}); assert.deepEqual(f.g.state.letters.map(L=>L.difficulty).sort(), ['easy','hard','medium']); assert(f.g.state.letters.find(L=>L.difficulty==='easy').want[0].level<=2); }
+  assert.equal(f.g.state.letters.find(L=>L.difficulty==='hard').want[0].level,8); assert.equal(f.g.state.unlocked.tech,8);
 });
 
 test('Migrating v12 keeps already earned rewards and upgrades pending answers without extra energy', () => {
@@ -356,7 +357,7 @@ test('Original ten stories still load and keep their old text after the age-libr
 test('New orders follow gift ages and never duplicate an active personal story', () => {
   const f=fixture(), seen=[];
   for(let n=0;n<90;n++){
-    const L=f.g.state.letters[n%3];
+    const L=f.g.state.letters.filter(L=>!L.special)[n%3];
     const level=Math.max(...L.want.map(g=>g.level));assert(level<=2?L.age>=5&&L.age<=6:level<=5?L.age>=7&&L.age<=9:L.age>=10&&L.age<=12);
     if(L.storyId)seen.push(L.storyId);
     if (L.choice && !L.chosen) act(f,{type:'chooseGift',orderId:L.id,level:L.want[0].level});
@@ -414,8 +415,9 @@ test('The rare plate is found once and survives dismantling both kinds of crafti
 test('Choice letters use approved age bands, appear once, and keep the selected gift on retry', () => {
   const f = fixture(), s = f.g.state;
   fulfill(f); fulfill(f);
-  fulfill(f, s.letters[1]);
-  const first = s.letters[1];
+  const medium = () => s.letters.find(L => L.difficulty === 'medium');
+  fulfill(f, medium());
+  const first = medium();
   assert.equal(first.choice, 'garage');
   assert(!E.canSend(s, first.id));
   assert(!f.g.act({ type: 'chooseGift', orderId: first.id, level: 3 }).ok);
@@ -426,20 +428,31 @@ test('Choice letters use approved age bands, appear once, and keep the selected 
   assert(!f.g.act({ type: 'chooseGift', orderId: first.id, level: 1 }).ok);
   f.g.random = () => .5;
   fulfill(f, s.extra.at(-1));
-  for (let n = 0; n < 3; n++) fulfill(f, s.letters[2]);
+  for (let n = 0; n < 3; n++) fulfill(f, s.letters.find(L => L.difficulty === 'hard'));
   assert(s.unlocked.tech >= 4);
-  fulfill(f, s.letters[1]);
-  const second = s.letters[1];
+  fulfill(f, medium());
+  const second = medium();
   assert.equal(second.choice, 'mission');
   act(f, { type: 'chooseGift', orderId: second.id, level: 4 });
   fulfill(f, second);
-  assert(!s.letters[1].choice);
+  assert(!medium().choice);
 });
 
 test('Special deliveries are one-offs, count twin gifts separately and reward the optional third gift', () => {
   const f = fixture(), s = f.g.state;
   for (let n = 0; n < 8; n++) fulfill(f);
-  const twins = s.extra.find(L => L.special === 'twins');
+  const twins = s.letters.find(L => L.special === 'twins');
+  assert(!E.visibleLetters(s).includes(twins));
+  const old = copy(s);
+  old.version = 23;
+  const oldTwins = old.letters.pop();
+  oldTwins.packed[0] = true;
+  old.extra.push(oldTwins);
+  const restored = E.migrate(old);
+  assert.deepEqual(restored.letters.at(-1), oldTwins);
+  assert(!restored.extra.some(L => L.special));
+  fulfill(f);
+  assert.equal(E.visibleLetters(s).at(-1), twins);
   const firstCell = s.board.indexOf(null);
   s.board[firstCell] = { gift: E.item('tech', 1) };
   assert(!E.canSend(s, twins.id));
@@ -448,7 +461,8 @@ test('Special deliveries are one-offs, count twin gifts separately and reward th
   assert(!E.canSend(s, twins.id));
   fulfill(f, twins);
   for (let n = 0; n < 8; n++) fulfill(f);
-  const village = s.extra.find(L => L.special === 'village');
+  const village = s.letters.find(L => L.special === 'village');
+  assert(E.visibleLetters(s).includes(village));
   pack(f, village);
   assert(E.canSend(s, village.id));
   assert.equal(E.orderThanks(village), 2);
@@ -458,5 +472,20 @@ test('Special deliveries are one-offs, count twin gifts separately and reward th
   const mailed = fulfill(f, village);
   assert.equal(mailed.rewardThanks, 4);
   for (let n = 0; n < 8; n++) fulfill(f);
-  assert(!s.extra.some(L => L.special));
+  assert(!s.letters.some(L => L.special));
+});
+
+test('Revealed tools reserve the cell until picked up and cannot be collected twice', () => {
+  const f = fixture(), s = f.g.state, cell = E.at('G4');
+  earn(f, 1);
+  act(f, { type: 'melt', cell });
+  assert.deepEqual(s.board[cell], { find: true });
+  assert.equal(s.bag.length, 0);
+  const from = s.board.findIndex(E.isItem);
+  assert(!f.g.act({ type: 'drop', from, to: cell }).ok);
+  assert.deepEqual(new E.Game(copy(s), f.g.now).state.board[cell], { find: true });
+  act(f, { type: 'pickup', cell });
+  assert.equal(s.board[cell], null);
+  assert.equal(s.bag.filter(x => x.kind === 'energy' && x.amount === 8).length, 1);
+  assert(!f.g.act({ type: 'pickup', cell }).ok);
 });
