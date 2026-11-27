@@ -489,3 +489,73 @@ test('Revealed tools reserve the cell until picked up and cannot be collected tw
   assert.equal(s.bag.filter(x => x.kind === 'energy' && x.amount === 8).length, 1);
   assert(!f.g.act({ type: 'pickup', cell }).ok);
 });
+
+test('A toy upgrade uses its declared donor and module and returns both after reload', () => {
+  const f = fixture(), s = f.g.state;
+  const [donor, module] = s.board.flatMap((x, i) => x === null ? [i] : []);
+  s.board[donor] = { gift: E.item('tech', 2) };
+  s.board[module] = E.item('tech', 5);
+  const before = copy(s.board);
+  const warning = f.g.act({ type: 'drop', from: donor, to: module });
+  assert(warning.warning);
+  assert.match(warning.confirmText, /улучшить/);
+  assert.deepEqual(s.board, before);
+  assert.equal(E.combine(s.board[donor], E.item('sew', 5)), null);
+  assert.equal(E.combine(s.board[donor], E.item('tech', 4)), null);
+  act(f, { type: 'drop', from: donor, to: module, force: true });
+  assert.equal(s.board[donor], null);
+  assert.deepEqual(s.board[module], { gift: { ...E.item('tech', 5), upgrade: 'remote-control' } });
+  const g = new E.Game(copy(s), f.g.now);
+  assert.deepEqual(g.state.board[module], s.board[module]);
+  assert(g.act({ type: 'disassemble', cell: module }).ok);
+  assert(E.validate(g.state));
+  assert.deepEqual(g.state.board[module], { gift: E.item('tech', 2) });
+  assert(g.state.board.some(x => E.isItem(x) && x.chain === 'tech' && x.level === 5));
+  assert(!g.state.board.some(x => E.isItem(x) && x.chain === 'tech' && x.level === 5 && x.upgrade));
+});
+
+test('A multi-part upgrade confirms its exact inputs and preserves the previous build when dismantled', () => {
+  const f = fixture(), s = f.g.state;
+  const [source, radio, drive] = s.board.flatMap((x, i) => x === null ? [i] : []);
+  const remote = E.combine({ gift: E.item('tech', 2) }, E.item('tech', 5));
+  s.board[source] = copy(remote);
+  s.board[radio] = E.item('tech', 5);
+  const incomplete = copy(s.board);
+  assert(!f.g.act({ type: 'drop', from: source, to: radio }).ok);
+  assert.deepEqual(s.board, incomplete);
+  s.board[drive] = E.item('tech', 3);
+  const warning = f.g.act({ type: 'drop', from: source, to: radio });
+  assert(warning.warning);
+  act(f, { type: 'drop', from: source, to: radio, force: true });
+  assert.equal(s.board[drive], null);
+  assert.equal(s.board[radio].gift.level, 6);
+  const restored = new E.Game(copy(s), f.g.now);
+  assert.deepEqual(restored.state.board[radio].gift.donorBuilt, remote.gift);
+  assert(restored.act({ type: 'disassemble', cell: radio }).ok);
+  assert(E.validate(restored.state));
+  assert.deepEqual(restored.state.board[radio], remote);
+});
+
+test('A feature request accepts only its variant, while ordinary requests prefer the plain toy', () => {
+  const f = fixture(), s = f.g.state;
+  finish(f);
+  act(f, { type: 'next' });
+  const [source, module] = s.board.flatMap((x, i) => x === null ? [i] : []);
+  const rule = E.GIFT_UPGRADES.find(x => x.id === 'moving-ears');
+  const order = s.letters.find(L => L.difficulty === 'hard');
+  order.storyId = null;
+  order.want = [copy(rule.result)];
+  s.giftStore.push(E.item('sew', 3));
+  assert(!E.canSend(s, order.id));
+  assert(!E.canCraft(s, order.id, 0));
+  s.board[source] = { gift: E.item('sew', 3) };
+  s.board[module] = E.item('tech', 3);
+  act(f, { type: 'drop', from: module, to: source });
+  const variant = s.board[source].gift;
+  assert.equal(variant.variant, 'moving-ears');
+  assert.equal(E.locateGifts(s, [E.item('sew', 3)])[0].stock, 0);
+  assert(E.canSend(s, order.id));
+  act(f, { type: 'send', orderId: order.id });
+  assert.equal(s.board[source], null);
+  assert.equal(s.giftStore.length, 1);
+});

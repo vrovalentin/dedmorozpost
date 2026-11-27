@@ -3,14 +3,25 @@
   'use strict';
   const C = typeof module !== 'undefined' && module.exports ? require('./content.js') : root.PostContent;
   const { CHAINS, RECIPES, SNOW, SHIFTS, CACHES, at, coord, makeBoard, item } = C;
-  const VERSION = 24, LETTER_SLOTS = 3, MAX_ENERGY = 40, REGEN_MS = 30000, MAIL_MS = 20000;
+  const VERSION = 26, LETTER_SLOTS = 3, MAX_ENERGY = 40, REGEN_MS = 30000, MAIL_MS = 20000;
   const clone = x => JSON.parse(JSON.stringify(x));
   const key = x => x.chain + ':' + x.level;
   const isItem = x => !!x && Object.hasOwn(CHAINS, x.chain) && Number.isInteger(x.level) && x.level >= 1 && x.level <= 8;
   const isRarePart = x => x?.rare === true && x.chain === C.RARE_PART.chain && x.level === C.RARE_PART.level;
   const label = x => isRarePart(x) ? C.RARE_NAME : CHAINS[x.chain].names[x.level - 1];
-  const giftName = x => CHAINS[x.chain].gifts[x.level - 1];
-  const validGift = g => isItem(g) && (Object.keys(g).length === 2 || (Object.keys(g).length === 3 && g.rare === true && g.chain === 'tech' && g.level === C.RARE_TARGET));
+  const giftName = x => upgradeById(x.variant)?.name || CHAINS[x.chain].gifts[x.level - 1];
+  const upgradeById = id => C.GIFT_UPGRADES.find(upgrade => upgrade.id === id);
+  const giftKey = g => g.variant ? key(g) + '@' + g.variant : key(g);
+  const matchesGift = (gift, request) => key(gift) === key(request) && (!request.variant || gift.variant === request.variant);
+  const upgradeFor = gift => gift && C.GIFT_UPGRADES.find(upgrade => giftKey(upgrade.result) === giftKey(gift));
+  function validGift(g) {
+    if (!isItem(g)) return false;
+    if (!g.upgrade) return Object.keys(g).length === 2 || (Object.keys(g).length === 3 && g.rare === true && g.chain === 'tech' && g.level === C.RARE_TARGET);
+    const rule = upgradeById(g.upgrade);
+    if (!rule || giftKey(rule.result) !== giftKey(g) || g.rare !== undefined) return false;
+    if (Object.keys(g).length !== 3 + Number(!!g.variant) + Number(!!g.donorBuilt)) return false;
+    return !g.donorBuilt || (rule.donor.level < rule.result.level && matchesDonor(g.donorBuilt, rule) && validGift(g.donorBuilt));
+  }
   const isGift = x => !!x && Object.keys(x).length === 1 && validGift(x.gift);
   function fitsRecipe(levels, level) {
     const remaining = [...RECIPES[level - 1]];
@@ -23,7 +34,15 @@
   }
   const isMovable = x => isItem(x) || isGift(x) || isAssembly(x);
   const cellName = x => isGift(x) ? giftName(x.gift) : isAssembly(x) ? 'Сборка: ' + giftName(x.assembly) : isItem(x) ? label(x) : '';
+  const matchesDonor = (gift, upgrade) => !!gift && key(gift) === key(upgrade.donor) && !gift.variant;
+  const matchesModule = (part, module) => isItem(part) && !isRarePart(part) && key(part) === key(module);
+  const upgradedGift = (upgrade, donor) => ({ ...upgrade.result, upgrade: upgrade.id, ...(donor?.upgrade || donor?.rare ? { donorBuilt: clone(donor) } : {}) });
   function combine(a, b) {
+    if (isGift(a) || isGift(b)) {
+      const [donor, module] = isGift(a) ? [a.gift, b] : [b.gift, a];
+      const upgrade = C.GIFT_UPGRADES.find(rule => matchesDonor(donor, rule) && rule.parts.length === 1 && matchesModule(module, rule.parts[0]));
+      return upgrade ? { gift: upgradedGift(upgrade, donor) } : null;
+    }
     if (isRarePart(a) || isRarePart(b)) {
       const other = isRarePart(a) ? b : a;
       return isItem(other) && other.chain === 'tech' && other.level === 6 ? { gift: { ...item('tech', C.RARE_TARGET), rare: true } } : null;
@@ -63,6 +82,7 @@
   const accessible = (s, i) => !!s.board[i]?.snow && neighbors(i).some(n => s.board[n] === null || !!s.board[n]?.find || isMovable(s.board[n]));
   function count(s) { const n = {}; s.board.forEach(x => { if (isItem(x) && !isRarePart(x)) n[key(x)] = (n[key(x)] || 0) + 1; }); return n; }
   const recipe = gift => RECIPES[gift.level - 1].map(l => item(gift.chain, l));
+  const requiredParts = gift => gift.variant ? upgradeFor(gift).parts : recipe(gift);
   function craftSlots(s, gift, useRare = false) {
     const slots = [];
     for (const part of recipe(gift)) {
@@ -76,23 +96,58 @@
   const rareFits = gift => gift.chain === 'tech' && gift.level === C.RARE_TARGET;
   function canCraft(s, orderId, index, useRare = false) {
     const L = findOrder(s, orderId);
-    if (!L || (L.choice && !L.chosen) || !L.want[index] || L.packed[index]) return false;
+    if (!L || (L.choice && !L.chosen) || !L.want[index] || L.want[index].variant || L.packed[index]) return false;
     const gift = L.want[index];
     return (!useRare || rareFits(gift)) && !!craftSlots(s, gift, useRare);
   }
+  function upgradeInputs(s, upgrade, donorCell = s.board.findIndex(x => isGift(x) && matchesDonor(x.gift, upgrade)), preferredCell = -1) {
+    const partCells = [];
+    for (const part of upgrade.parts) {
+      const preferred = matchesModule(s.board[preferredCell], part) && !partCells.includes(preferredCell);
+      partCells.push(preferred ? preferredCell : s.board.findIndex((x, i) => !partCells.includes(i) && matchesModule(x, part)));
+    }
+    return { donorCell, donorStock: s.giftStore.findIndex(g => matchesDonor(g, upgrade)), partCells };
+  }
+  function canUpgrade(s, orderId, index) {
+    const L = findOrder(s, orderId);
+    if (!L || (L.choice && !L.chosen) || L.packed[index]) return false;
+    const upgrade = upgradeFor(L.want[index]);
+    if (!upgrade) return false;
+    const { donorCell, donorStock, partCells } = upgradeInputs(s, upgrade);
+    return partCells.every(cell => cell >= 0) && (donorCell >= 0 || donorStock >= 0);
+  }
+  function markPacked(order, index, gift) {
+    if (gift.rare) (order.rarePacked ||= []).push(index);
+    if (gift.upgrade) (order.upgradePacked ||= {})[index] = gift.donorBuilt ? clone(gift) : gift.upgrade;
+    order.packed[index] = true;
+  }
   function countGifts(s) {
     const result = {};
-    [...s.board.filter(isGift).map(x => x.gift), ...s.giftStore].forEach(g => { result[key(g)] = (result[key(g)] || 0) + 1; });
+    [...s.board.filter(isGift).map(x => x.gift), ...s.giftStore].forEach(g => {
+      result[key(g)] = (result[key(g)] || 0) + 1;
+      if (g.variant) result[giftKey(g)] = (result[giftKey(g)] || 0) + 1;
+    });
+    return result;
+  }
+  function locateGifts(s, requests) {
+    const choices = [
+      ...s.board.flatMap((x, index) => isGift(x) ? [{ gift: x.gift, cell: index }] : []),
+      ...s.giftStore.map((gift, stock) => ({ gift, stock }))
+    ].sort((a, b) => Number(!!a.gift.variant) - Number(!!b.gift.variant));
+    const result = [];
+    const order = requests.map((_, i) => i).sort((a, b) => Number(!!requests[b]?.variant) - Number(!!requests[a]?.variant));
+    for (const i of order) {
+      const request = requests[i];
+      const found = request ? choices.findIndex(x => matchesGift(x.gift, request)) : -1;
+      result[i] = found >= 0 ? choices.splice(found, 1)[0] : null;
+    }
     return result;
   }
   function canSend(s, id) {
-    const L = findOrder(s, id); if (!L || (L.choice && !L.chosen)) return false;
-    const available = countGifts(s);
-    return L.want.every((g, i) => {
-      if (L.packed[i]) return true;
-      if (!available[key(g)]) return false;
-      available[key(g)]--; return true;
-    });
+    const L = findOrder(s, id);
+    if (!L || (L.choice && !L.chosen)) return false;
+    const locations = locateGifts(s, L.want.map((g, i) => L.packed[i] ? null : g));
+    return L.packed.every((packed, i) => packed || !!locations[i]);
   }
   function rates(s) { return { lost: .2, damaged: s.built.includes(2) ? .05 : .1 }; }
   const giftThanks = gift => Math.max(1, gift.level - 4);
@@ -138,14 +193,17 @@
     const lastSeen = id => Math.max(0, ...history.filter(L => L.storyId === id).map(L => L.id));
     const want = [item(chain, level)];
     if (!side && difficulty === 'hard' && chains.length > 1 && sequence % 7 === 0) want.push(item(chains.find(c => c !== chain), 1));
-    const candidates = want.length === 1 ? C.PERSONAL_LETTERS.filter(x => x.chain === chain && x.level === level) : [];
+    const variant = s.shift >= 1 && want.length === 1 && !side && s.mail.filter(m => m.claimed && m.outcome === 'success' && m.order.want[0].chain === 'sew').length >= 2
+      ? C.GIFT_UPGRADES.find(rule => rule.name && key(rule.result) === key(want[0]) && !history.some(L => L.want[0].variant === rule.id)) : null;
+    if (variant) want[0] = clone(variant.result);
+    const candidates = !variant && want.length === 1 ? C.PERSONAL_LETTERS.filter(x => x.chain === chain && x.level === level) : [];
     const story = candidates.find(x => !used.has(x.id)) || candidates.filter(x => !activeStories.has(x.id) && lastSeen(x.id) <= s.nextId - 6).sort((a,b) => lastSeen(a.id) - lastSeen(b.id))[0];
     const age = story?.age || level + 4;
     const ageGroup = level <= 2 ? '5–6' : level <= 5 ? '7–9' : '10–12';
     const author = s.shift < 2 && story ? { ...story, ...C.WORKSHOP_AUTHORS[story.id] } : story;
     return { id: s.nextId++, who: author?.who || names[(s.nextId - 2) % names.length] + ', ' + age + ' лет', age, ageGroup,
-      text: author?.request || (side ? 'Моё письмо потерялось в сугробе. Как здорово, что вы его нашли!' : 'Дедушка Мороз, подари, пожалуйста, этот подарок. У меня уже есть идеи для игр с ним. Спасибо, что прочитал моё письмо!'),
-      replyText: author?.reply || 'Подарок приехал! Спасибо, Дедушка! Мы уже придумали, как будем с ним играть.', storyId: story?.id || null,
+      text: variant?.request || author?.request || (side ? 'Моё письмо потерялось в сугробе. Как здорово, что вы его нашли!' : 'Дедушка Мороз, подари, пожалуйста, этот подарок. У меня уже есть идеи для игр с ним. Спасибо, что прочитал моё письмо!'),
+      replyText: variant?.reply || author?.reply || 'Подарок приехал! Спасибо, Дедушка! Мы уже придумали, как будем с ним играть.', storyId: story?.id || null,
       difficulty: side ? 'found' : difficulty, want, packed: [false], protected: false, retry: false, side };
   }
   function fresh(now = Date.now()) {
@@ -168,6 +226,15 @@
       if (!s.giftStore.every(g => validGift(g) && allowed.includes(g.chain))) return false;
       for (const c of Object.keys(CHAINS)) if (!Number.isInteger(s.unlocked?.[c]) || s.unlocked[c] < 1 || s.unlocked[c] > 8 || !Number.isInteger(s.chainIssued?.[c]) || s.chainIssued[c] < 0) return false;
       const validEvent = L => {
+        if (L.upgradePacked !== undefined) {
+          if (!L.upgradePacked || typeof L.upgradePacked !== 'object' || Array.isArray(L.upgradePacked)) return false;
+          for (const [n, id] of Object.entries(L.upgradePacked)) {
+            const rule = upgradeById(typeof id === 'string' ? id : id?.upgrade);
+            if (!rule || !L.packed[n] || !L.want[n] || !matchesGift(rule.result, L.want[n]) || L.rarePacked?.includes(Number(n))) return false;
+            if (typeof id !== 'string' && (!validGift(id) || !matchesGift(id, rule.result))) return false;
+          }
+        }
+        if (L.want.some((g, i) => g.variant && L.packed[i] && !L.upgradePacked?.[i])) return false;
         if (L.rarePacked !== undefined && (!Array.isArray(L.rarePacked) || !L.rarePacked.every((i, n, a) => Number.isInteger(i) && a.indexOf(i) === n && L.packed[i] && L.want[i] && rareFits(L.want[i])))) return false;
         if (L.choice) {
           const data = C.CHOICE_LETTERS.find(p => p.id === L.choice);
@@ -179,7 +246,7 @@
         const levels = L.want.length === 3 ? [...data.levels, data.optional] : data.levels;
         return L.want.length === levels.length && L.want.every((g, i) => g.chain === 'tech' && g.level === levels[i]);
       };
-      const validOrder = L => L && Number.isInteger(L.id) && L.id > 0 && L.id < s.nextId && typeof L.who === 'string' && typeof L.text === 'string' && Array.isArray(L.want) && L.want.length > 0 && L.want.length <= (L.special === 'village' ? 3 : 2) && L.want.every(g => isItem(g) && allowed.includes(g.chain)) && Array.isArray(L.packed) && L.packed.length === L.want.length && L.packed.every(x => typeof x === 'boolean') && typeof L.protected === 'boolean' && typeof L.retry === 'boolean' && [...ORDER_TIERS, 'legacy', 'found', 'special'].includes(L.difficulty) && validEvent(L) && (L.replyText === undefined || typeof L.replyText === 'string') && (L.storyId == null || [...C.PERSONAL_LETTERS, ...C.LEGACY_PERSONAL_LETTERS].some(p => p.id === L.storyId && L.want.length === 1 && p.chain === L.want[0].chain && p.level === L.want[0].level));
+      const validOrder = L => L && Number.isInteger(L.id) && L.id > 0 && L.id < s.nextId && typeof L.who === 'string' && typeof L.text === 'string' && Array.isArray(L.want) && L.want.length > 0 && L.want.length <= (L.special === 'village' ? 3 : 2) && L.want.every(g => isItem(g) && allowed.includes(g.chain) && (!g.variant || giftKey(upgradeById(g.variant)?.result || g) === giftKey(g) && !!upgradeById(g.variant)?.name)) && Array.isArray(L.packed) && L.packed.length === L.want.length && L.packed.every(x => typeof x === 'boolean') && typeof L.protected === 'boolean' && typeof L.retry === 'boolean' && [...ORDER_TIERS, 'legacy', 'found', 'special'].includes(L.difficulty) && validEvent(L) && (L.replyText === undefined || typeof L.replyText === 'string') && (L.storyId == null || [...C.PERSONAL_LETTERS, ...C.LEGACY_PERSONAL_LETTERS].some(p => p.id === L.storyId && L.want.length === 1 && p.chain === L.want[0].chain && p.level === L.want[0].level));
       if (!orderList(s).every(validOrder) || new Set(orderList(s).map(L => L.id)).size !== orderList(s).length) return false;
       const ids = new Set();
       for (const m of s.mail) {
@@ -227,7 +294,7 @@
   }
   function migrate(saved) {
     try {
-      if ([21, 22, 23].includes(saved?.version)) {
+      if ([21, 22, 23, 24, 25].includes(saved?.version)) {
         const candidate = { ...clone(saved), version: VERSION };
         const special = candidate.extra.filter(L => L?.special);
         candidate.extra = candidate.extra.filter(L => !L?.special);
@@ -327,15 +394,27 @@
       if (a.type === 'packGift') {
         const L = findOrder(s, a.orderId), i = a.giftIndex, g = L?.want[i];
         if (!L?.special || !g || L.packed[i]) return fail('В этой посылке нет свободного места для такого подарка.');
-        const cell = b.findIndex(x => isGift(x) && key(x.gift) === key(g));
-        const store = s.giftStore.findIndex(x => key(x) === key(g));
-        if (cell < 0 && store < 0) return fail('Сначала собери подарок.');
+        const location = locateGifts(s, [g])[0];
+        if (!location) return fail('Сначала собери подарок.');
+        const { gift, cell, stock } = location;
         this.remember();
-        const gift = cell >= 0 ? b[cell].gift : s.giftStore[store];
-        if (cell >= 0) b[cell] = null; else s.giftStore.splice(store, 1);
-        if (gift.rare) (L.rarePacked ||= []).push(i);
-        L.packed[i] = true; s.moves++;
+        if (cell !== undefined) b[cell] = null; else s.giftStore.splice(stock, 1);
+        markPacked(L, i, gift); s.moves++;
         return ok(giftName(g) + ' упакован. Место на столе свободно.');
+      }
+      if (a.type === 'upgradeGift') {
+        const L = findOrder(s, a.orderId), i = a.giftIndex;
+        if (!L || !canUpgrade(s, L.id, i)) return fail('Нужны исходная игрушка и подходящая деталь.');
+        const upgrade = upgradeFor(L.want[i]);
+        const { donorCell, donorStock, partCells } = upgradeInputs(s, upgrade);
+        const donor = donorCell >= 0 ? b[donorCell].gift : s.giftStore[donorStock];
+        this.remember();
+        partCells.forEach(cell => { b[cell] = null; });
+        if (donorCell >= 0) b[donorCell] = null;
+        else s.giftStore.splice(donorStock, 1);
+        markPacked(L, i, upgradedGift(upgrade, donor));
+        s.moves++;
+        return ok('Доработка упакована: ' + giftName(upgrade.result) + '.');
       }
       if (a.type === 'craft') {
         const L = findOrder(s, a.orderId), useRare = a.useRare === true;
@@ -351,20 +430,27 @@
         const packed = L && L.packed[a.giftIndex], stored = Number.isInteger(a.storeIndex) ? s.giftStore[a.storeIndex] : null;
         const x = b[a.cell], gift = packed ? L.want[a.giftIndex] : stored || (isGift(x) ? x.gift : null);
         if (!gift && !isAssembly(x)) return fail('Выбери подарок или незавершённую сборку.');
+        const packedUpgrade = packed ? L.upgradePacked?.[a.giftIndex] : null;
+        const built = packedUpgrade || gift;
+        const upgrade = upgradeById(typeof built === 'string' ? built : built?.upgrade);
         const chain = gift ? gift.chain : x.assembly.chain;
+        const rareUsed = gift?.rare || (packed && L.rarePacked?.includes(a.giftIndex));
         const levels = gift ? RECIPES[gift.level - 1] : x.assembly.parts;
+        const ingredients = upgrade
+          ? [{ gift: clone(built.donorBuilt || upgrade.donor) }, ...clone(upgrade.parts)]
+          : levels.map(level => rareUsed && level === C.RARE_PART.level ? clone(C.RARE_PART) : item(chain, level));
         const empty = b.flatMap((p, i) => p === null ? [i] : []);
         const slots = packed || stored ? empty : [a.cell, ...empty];
-        if (slots.length < levels.length) return fail('Для всех деталей нужно ' + levels.length + ' клеток. Освободи ещё ' + (levels.length - slots.length) + '. Подарок сохранён.');
+        if (slots.length < ingredients.length) return fail('Для всех деталей нужно ' + ingredients.length + ' клеток. Освободи ещё ' + (ingredients.length - slots.length) + '. Подарок сохранён.');
         this.remember();
-        const rareUsed = gift?.rare || (packed && L.rarePacked?.includes(a.giftIndex));
         if (packed) {
           L.packed[a.giftIndex] = false;
           if (rareUsed) L.rarePacked = L.rarePacked.filter(i => i !== a.giftIndex);
+          if (upgrade) delete L.upgradePacked[a.giftIndex];
         }
         if (stored) s.giftStore.splice(a.storeIndex, 1);
-        levels.forEach((level, i) => { b[slots[i]] = rareUsed && level === C.RARE_PART.level ? clone(C.RARE_PART) : item(chain, level); }); s.moves++;
-        return ok('Все детали возвращены на поле по рецепту.', packed || stored ? slots[0] : a.cell);
+        ingredients.forEach((ingredient, i) => { b[slots[i]] = ingredient; }); s.moves++;
+        return ok(upgrade ? 'Исходная игрушка и деталь вернулись на поле.' : 'Все детали возвращены на поле по рецепту.', packed || stored ? slots[0] : a.cell);
       }
       if (a.type === 'protect') {
         const L = findOrder(s, a.orderId), index = s.bag.findIndex(t => t.kind === 'tag');
@@ -374,14 +460,15 @@
       if (a.type === 'send') {
         const L = findOrder(s, a.orderId); if (!L || !canSend(s, L.id)) return fail('Сначала собери все подарки письма.');
         this.remember();
-        L.want.forEach((g, i) => {
-          if (L.packed[i]) return;
-          const cell = b.findIndex(x => isGift(x) && key(x.gift) === key(g));
-          const gift = cell >= 0 ? b[cell].gift : s.giftStore.splice(s.giftStore.findIndex(x => key(x) === key(g)), 1)[0];
-          if (cell >= 0) b[cell] = null;
-          if (gift.rare) (L.rarePacked ||= []).push(i);
-          L.packed[i] = true;
+        const locations = locateGifts(s, L.want.map((g, i) => L.packed[i] ? null : g));
+        const stockToRemove = [];
+        locations.forEach((location, i) => {
+          if (!location) return;
+          if (location.cell !== undefined) b[location.cell] = null;
+          else stockToRemove.push(location.stock);
+          markPacked(L, i, location.gift);
         });
+        stockToRemove.sort((a, b) => b - a).forEach(index => s.giftStore.splice(index, 1));
         const chance = rates(s), roll = L.retry || L.protected ? 0 : this.roll();
         const success = Math.round((1 - chance.lost - chance.damaged) * 100) / 100;
         const outcome = roll < success ? 'success' : roll < success + chance.lost ? 'lost' : 'damaged';
@@ -412,7 +499,7 @@
           return ok('Ответ: «Спасибо за подарок!» +' + m.rewardThanks + ' ♡.' + (m.bonusEnergy ? ' +1 ❄' + (overflow ? ' · сохранена в находках.' : '') : ''));
         }
         if (m.outcome === 'damaged') { offerSpecial(s); return ok('Подарок повредился в дороге. За эту посылку нет сердечка. Новые письма продолжают приходить.'); }
-        const retry = clone(m.order); retry.retry = true; retry.protected = false; retry.packed = retry.want.map(() => false); delete retry.rarePacked;
+        const retry = clone(m.order); retry.retry = true; retry.protected = false; retry.packed = retry.want.map(() => false); delete retry.rarePacked; delete retry.upgradePacked;
         (retry.special ? s.letters : s.extra).push(retry);
         return ok('Посылка потерялась. Повторный заказ добавлен под письмами; он гарантированно дойдёт.');
       }
@@ -482,20 +569,39 @@
       if (y?.snow || y?.blocked) return fail('Сначала расчисти снег за спасибо.');
       if (isItem(x) && isItem(y) && !isRarePart(x) && !isRarePart(y) && key(x) === key(y)) {
         if (x.level === 8) return fail('Это максимальный уровень запчасти. Её используют в рецепте.');
-        const need = [...visibleLetters(s), ...s.extra].filter(L => !L.choice || L.chosen).flatMap(L => L.want.flatMap((g, n) => L.packed[n] ? [] : recipe(g))).filter(p => key(p) === key(x)).length;
+        const need = [...visibleLetters(s), ...s.extra].filter(L => !L.choice || L.chosen).flatMap(L => L.want.flatMap((g, n) => L.packed[n] ? [] : requiredParts(g))).filter(p => key(p) === key(x)).length;
         if (!a.force && need && count(s)[key(x)] - 2 < need) return { ok: false, warning: true, text: label(x) + ' нужен в рецепте.' };
         this.remember(); b[from] = null; b[to] = item(x.chain, x.level + 1); s.moves++;
         return ok(label(b[to]) + ' · уровень ' + b[to].level, to);
       }
-      const crafted = combine(x, y);
+      const donorCell = isGift(x) ? from : isGift(y) ? to : -1;
+      const partCell = donorCell === from ? to : from;
+      const donor = b[donorCell]?.gift;
+      const upgrade = donor && C.GIFT_UPGRADES.find(rule => matchesDonor(donor, rule) && rule.parts.some(part => matchesModule(b[partCell], part)));
+      const input = upgrade ? upgradeInputs(s, upgrade, donorCell, partCell) : null;
+      if (input?.partCells.some(cell => cell < 0)) return fail('Для доработки нужны: ' + upgrade.parts.map(label).join(' + ') + '.');
+      if (upgrade && upgrade.parts.length > 1 && !a.force) {
+        return { ok: false, warning: true, confirmText: 'Доработать', text: 'Будут использованы ' + giftName(donor) + ' и детали: ' + upgrade.parts.map(label).join(' + ') + '.' };
+      }
+      const crafted = upgrade ? { gift: upgradedGift(upgrade, donor) } : combine(x, y);
       if (crafted) {
-        this.remember(); b[from] = null; b[to] = crafted; s.moves++;
+        if (!a.force && crafted.gift?.upgrade) {
+          const donor = upgradeById(crafted.gift.upgrade).donor;
+          const current = [...visibleLetters(s), ...s.extra];
+          const needed = current.filter(L => !L.choice || L.chosen).reduce((total, L) => total + L.want.filter((g, i) => !L.packed[i] && key(g) === key(donor)).length, 0);
+          if (needed && (countGifts(s)[key(donor)] || 0) <= needed) {
+            return { ok: false, warning: true, confirmText: 'Всё равно улучшить', text: giftName(donor) + ' нужна для другого письма. Доработка её использует.' };
+          }
+        }
+        this.remember();
+        input?.partCells.forEach(cell => { b[cell] = null; });
+        b[from] = null; b[to] = crafted; s.moves++;
         return ok(isGift(crafted) ? giftName(crafted.gift) + ' готов на поле! В подходящем письме появилась кнопка «Отправить».' : 'Начали сборку: ' + giftName(crafted.assembly) + '. Добавь уровни ' + RECIPES[crafted.assembly.level - 1].filter(n => !crafted.assembly.parts.includes(n)).join(', ') + '.', to);
       }
       this.remember(); b[from] = y; b[to] = x; s.moves++;
       return ok(y ? 'Поменяли запчасти местами.' : 'Переместили запчасть.', to);
     }
   }
-  const api = { ...C, VERSION, MAX_ENERGY, REGEN_MS, MAIL_MS, Game, fresh, validate, migrate, isItem, isRarePart, rareFits, isGift, isAssembly, isMovable, cellName, combine, countGifts, ORDER_TIERS, ENERGY_GIFTS, completedLetters, giftThanks, orderThanks, label, giftName, key, recipe, count, canCraft, canSend, findOrder, visibleLetters, orderList, neighbors, accessible, parts, complete, cacheAt, isCleared, rates };
+  const api = { ...C, VERSION, MAX_ENERGY, REGEN_MS, MAIL_MS, Game, fresh, validate, migrate, isItem, isRarePart, rareFits, isGift, isAssembly, isMovable, cellName, combine, countGifts, ORDER_TIERS, ENERGY_GIFTS, completedLetters, giftThanks, orderThanks, label, giftName, key, recipe, requiredParts, count, canCraft, canUpgrade, upgradeFor, upgradeInputs, giftKey, locateGifts, canSend, findOrder, visibleLetters, orderList, neighbors, accessible, parts, complete, cacheAt, isCleared, rates };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.PostGame = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

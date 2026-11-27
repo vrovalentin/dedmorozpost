@@ -172,3 +172,8 @@ dialog #recipe-story,dialog .field-craft-hint{color:#625b6b}dialog .drawing{bord
 .envelope-tier.special-mark{background:#71458e;border-color:#a57cc7;color:#fff;font-size:clamp(6px,1.2vw,9px);white-space:nowrap}
 .envelope-flight{position:fixed;z-index:45;pointer-events:none;transform:rotate(-2deg)}
 .envelope-flight:before{display:none}
+
+.upgrade-recipe{margin-top:14px;padding:10px 12px;border:1px solid #ddcbe9;border-radius:8px;background:#faf6fd}
+.upgrade-recipe h4{margin:0 0 8px;font-size:14px}
+.upgrade-recipe p{margin:5px 0}
+.upgrade-recipe .upgrade-action{margin-top:6px}

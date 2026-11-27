@@ -466,6 +466,16 @@
       "reply": "Спасибо за большую капибару! Поставила её у стены и устроилась читать. Младшая сестра пришла проверить, сколько она занимает места, и осталась рядом. Вдвоём тоже поместились, только книгу пришлось держать посередине. Маленькую капибару посадили рядом с большой."
     }
   };
+  const GIFT_UPGRADES = [
+    {"id":"lights","donor":{"chain":"tech","level":1},"parts":[{"chain":"tech","level":2}],"result":{"chain":"tech","level":2}},
+    {"id":"remote-control","donor":{"chain":"tech","level":2},"parts":[{"chain":"tech","level":5}],"result":{"chain":"tech","level":5}},
+    {"id":"off-road","donor":{"chain":"tech","level":5},"parts":[{"chain":"tech","level":5},{"chain":"tech","level":3}],"result":{"chain":"tech","level":6}},
+    {"id":"programmed-robot","donor":{"chain":"tech","level":3},"parts":[{"chain":"tech","level":7},{"chain":"tech","level":5}],"result":{"chain":"tech","level":7}},
+    {"id":"hoodie","donor":{"chain":"sew","level":4},"parts":[{"chain":"sew","level":4}],"result":{"chain":"sew","level":5}},
+    {"id":"big-pillow","donor":{"chain":"sew","level":6},"parts":[{"chain":"sew","level":8}],"result":{"chain":"sew","level":8}},
+    {"id":"moving-ears","donor":{"chain":"sew","level":3},"parts":[{"chain":"tech","level":3}],"result":{"chain":"sew","level":3,"variant":"moving-ears"},"name":"Зайка с подвижными ушами","request":"Дедушка Мороз, можно мягкого зайку, у которого шевелятся ушки? Я буду делать вид, что он слышит мои секреты.","reply":"Спасибо за зайку! Я шепнула ему про печенье, а он зашевелил ушами. Кажется, он всё понял!"},
+    {"id":"night-dragon","donor":{"chain":"sew","level":7},"parts":[{"chain":"tech","level":4}],"result":{"chain":"sew","level":7,"variant":"night-dragon"},"name":"Дракон-ночник","request":"Дед Мороз, хочу мягкого дракона, у которого крылья светятся. Поставлю его у кровати, чтобы ночью было видно, где мои тапочки.","reply":"Спасибо за дракона! Его крылья светятся тихонько. У кровати теперь видно тапочки, и сам дракон выглядит так, будто сторожит комнату."}
+  ];
   const RECIPES = [[2, 1], [3, 1], [3, 2], [4, 3], [5, 3], [6, 4], [7, 5, 1], [8, 6, 1, 2, 3]];
   const RARE_PART = { chain: 'tech', level: 4, rare: true };
   const RARE_NAME = 'Морозостойкая плата';
@@ -532,7 +542,7 @@
     for (const [p, cache] of Object.entries(CACHES[shift])) if (cache.snow) b[at(p)] = { snow: cache.snow };
     return b;
   }
-  const api = { WORKSHOP_AUTHORS, RARE_PART, RARE_NAME, RARE_TARGET, CHOICE_LETTERS, SPECIAL_LETTERS, PERSONAL_LETTERS, LEGACY_PERSONAL_LETTERS, CHAINS, RECIPES, SNOW, SHIFTS, CACHES, at, coord, makeBoard, item };
+  const api = { GIFT_UPGRADES, WORKSHOP_AUTHORS, RARE_PART, RARE_NAME, RARE_TARGET, CHOICE_LETTERS, SPECIAL_LETTERS, PERSONAL_LETTERS, LEGACY_PERSONAL_LETTERS, CHAINS, RECIPES, SNOW, SHIFTS, CACHES, at, coord, makeBoard, item };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PostContent = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

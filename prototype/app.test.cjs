@@ -58,7 +58,7 @@ function session(storage = new Map()) {
   const sandbox = { document: doc, innerWidth: 800, innerHeight: 600, Date: FakeDate, console, localStorage: { getItem: k => storage.get(k) || null, setItem: (k, v) => storage.set(k, v) }, setInterval: fn => intervals.push(fn), addEventListener() {} };
   sandbox.window = sandbox; const context = vm.createContext(sandbox);
   for (const file of ['content.js', 'engine.js', 'app.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, file), 'utf8'), context, { filename: file });
-  return { doc, storage, context, state: () => JSON.parse(storage.get('pochta-workshops-v24')), advance(ms) { now += ms; intervals.forEach(fn => fn()); } };
+  return { doc, storage, context, state: () => JSON.parse(storage.get('pochta-workshops-v26')), advance(ms) { now += ms; intervals.forEach(fn => fn()); } };
 }
 test('Actual UI handlers: initial render → recipe → craft → send → delayed answer → heart → snow', () => {
   const s = session(), $ = id => s.doc.getElementById(id);
@@ -81,7 +81,7 @@ test('UI reload reads its own save, catalog has eight tiers, and errors in stora
   const first = session(); const state = first.state();
   const second = session(first.storage); assert.deepEqual(second.state(), state);
   const catalog = second.doc.getElementById('catalog'); assert.equal(catalog.querySelectorAll('.catalog-part').length, 8); assert.equal(catalog.querySelectorAll('.catalog-gift').length, 8);
-  const broken = new Map([['pochta-workshops-v24', '{broken json']]); const recovered = session(broken); assert.match(recovered.doc.getElementById('tip').textContent, /Хранилище/); assert.equal(recovered.state().version,E.VERSION);
+  const broken = new Map([['pochta-workshops-v26', '{broken json']]); const recovered = session(broken); assert.match(recovered.doc.getElementById('tip').textContent, /Хранилище/); assert.equal(recovered.state().version,E.VERSION);
 });
 
 test('Board crafting marks the envelope ready; opening the full letter sends the gift once', () => {
@@ -160,7 +160,7 @@ test('Room restoration survives reload and workshop transitions, and undo remove
   }
   g.state.thanks = 400;
   assert(E.validate(g.state));
-  const load = () => session(new Map([['pochta-workshops-v24', JSON.stringify(g.state)]]));
+  const load = () => session(new Map([['pochta-workshops-v26', JSON.stringify(g.state)]]));
   const clearOne = () => {
     const cell = g.state.board.findIndex((x, i) => x?.snow && E.accessible(g.state, i));
     assert(cell >= 0); assert(g.act({ type: 'melt', cell }).ok); if (g.state.board[cell]?.find) assert(g.act({ type: 'pickup', cell }).ok); return cell;
@@ -197,7 +197,7 @@ test('Room restoration survives reload and workshop transitions, and undo remove
       if (chain === 'sew') {
         const sewing = get('catalog').querySelectorAll('.catalog-workshop')[1];
         assert.equal(sewing.querySelectorAll('.catalog-part').filter(row => row.querySelector('img')).length, 3);
-        assert.equal(sewing.querySelectorAll('.catalog-gift').filter(row => row.querySelector('img')).length, 4);
+        assert.equal(sewing.querySelectorAll('.catalog-gift').filter(row => row.querySelector('img')).length, 8);
         const click = cell => get('board').events.click[0]({ target: get('board').children[E.at(cell)] });
         click('D4'); click('D3');
         const gift = get('board').children[E.at('D3')].querySelector('img'); assert.match(gift.src, /sewing\/sprites\/gift-1.webp$/);
@@ -215,7 +215,7 @@ test('Snow artwork distinguishes all three costs and clearance reveals one find 
   assert(g.act({ type: 'send', orderId: order.id }).ok);
   g.state.mail[0].dueAt = 1000000;
   assert(g.act({ type: 'claim', mailId: g.state.mail[0].id }).ok);
-  const s = session(new Map([['pochta-workshops-v24', JSON.stringify(g.state)]])), $ = id => s.doc.getElementById(id);
+  const s = session(new Map([['pochta-workshops-v26', JSON.stringify(g.state)]])), $ = id => s.doc.getElementById(id);
   for (const [cell, file, cost] of [['B4','loose',1],['D6','packed',2],['D9','ice',5]]) {
     const el = $('board').children[E.at(cell)]; assert.match(el.querySelector('img').src, new RegExp(file+'\\.webp$')); assert.equal(el.querySelector('.level').textContent, cost+'♡');
   }
@@ -254,7 +254,7 @@ test('Purple is the default; choosing green survives reload without touching gam
 test('High-level reward is visible in the letter and reply and can be claimed once', () => {
   const E=require('./engine.js'), g=new E.Game(undefined,()=>1000000,()=>.5), L=g.state.letters[0];
   L.storyId = null; L.want =[E.item('tech',8)]; L.packed=[false]; L.protected=true; g.state.giftStore=JSON.parse(JSON.stringify(L.want));
-  const s=session(new Map([['pochta-workshops-v24',JSON.stringify(g.state)]])), $=id=>s.doc.getElementById(id);
+  const s=session(new Map([['pochta-workshops-v26',JSON.stringify(g.state)]])), $=id=>s.doc.getElementById(id);
   $('letters').children[0].querySelector('button').click(); assert.match($('recipe-story').textContent,/4 ♡/);
   $('recipe-send').click(); assert.equal(s.state().thanks,0); s.advance(20000); $('mail-list').querySelector('button').click(); assert.match($('reply-claim').textContent,/4 ♡/);
   $('reply-claim').click(); assert.equal(s.state().thanks,4); assert.equal(session(s.storage).state().thanks,4);
@@ -273,12 +273,12 @@ test('Personal reply and one-time energy gift are visible, saved and do not over
   const E=require('./engine.js');let now=1000000;const g=new E.Game(undefined,()=>now,()=>.5);
   for(let i=0;i<5;i++){const L=g.state.letters[0];L.packed=[true];assert(g.act({type:'send',orderId:L.id}).ok);now+=E.MAIL_MS;assert(g.act({type:'claim',mailId:g.state.mail.at(-1).id}).ok);}
   g.state.energy=39;g.state.energyAt=1000000;
-  const s=session(new Map([['pochta-workshops-v24',JSON.stringify(g.state)]])), $=id=>s.doc.getElementById(id);
+  const s=session(new Map([['pochta-workshops-v26',JSON.stringify(g.state)]])), $=id=>s.doc.getElementById(id);
   const button=$('energy-gifts').children[0].querySelector('button');assert(!button.disabled);assert.match(button.textContent,/5 ❄/);button.click();
   assert.equal(s.state().energy,40);assert.deepEqual(s.state().energyGiftClaims,[5]);assert.equal(s.state().bag.find(t=>t.name==='Подарок снеговика').amount,4);
   assert($('energy-gifts').children[0].querySelector('button').disabled);assert.deepEqual(session(s.storage).state().energyGiftClaims,[5]);
   const personalSeed=new E.Game(undefined,()=>1000000,()=>.5); personalSeed.state.letters[0].protected=true;
-  const first=session(new Map([['pochta-workshops-v24',JSON.stringify(personalSeed.state)]])), get=id=>first.doc.getElementById(id);get('letters').children[0].querySelector('button').click();assert.match(get('recipe-story').textContent,/тоннель/);
+  const first=session(new Map([['pochta-workshops-v26',JSON.stringify(personalSeed.state)]])), get=id=>first.doc.getElementById(id);get('letters').children[0].querySelector('button').click();assert.match(get('recipe-story').textContent,/тоннель/);
   get('recipe-items').querySelector('button').click();get('recipe-send').click();
   first.advance(20000);get('mail-list').querySelector('button').click();
   assert.equal(first.state().mail[0].outcome,'success');assert(get('reply-text').textContent.includes(E.PERSONAL_LETTERS[0].reply));
@@ -308,7 +308,7 @@ test('Marked letters expose gift choice and optional village packing in the actu
   for (let i = 0; i < 6; i++) deliver(easy());
   deliver(g.state.letters.find(L => L.special === 'twins'));
   for (let i = 0; i < 8; i++) deliver(easy());
-  const s = session(new Map([['pochta-workshops-v24', JSON.stringify(g.state)]]));
+  const s = session(new Map([['pochta-workshops-v26', JSON.stringify(g.state)]]));
   const $ = id => s.doc.getElementById(id);
   const medium = $('letters').children.find(card => card.querySelector('.choice-mark'));
   assert.equal(medium.querySelector('.choice-mark').textContent, 'Подбери подарок');
@@ -380,7 +380,7 @@ test('Sending the middle envelope moves the right one left and opens a new slot 
   const before = E.visibleLetters(g.state).map(L => L.id);
   const middle = g.state.letters[1];
   middle.packed[0] = true;
-  const s = session(new Map([['pochta-workshops-v24', JSON.stringify(g.state)]]));
+  const s = session(new Map([['pochta-workshops-v26', JSON.stringify(g.state)]]));
   const $ = id => s.doc.getElementById(id);
   const envelopes = () => $('letters').children.map(card => Number(card.dataset.envelope));
   assert.deepEqual(envelopes(), before);
@@ -391,4 +391,32 @@ test('Sending the middle envelope moves the right one left and opens a new slot 
   assert(!before.includes(after[2]));
   assert.equal(s.state().mail.at(-1).order.id, middle.id);
   assert.deepEqual(E.visibleLetters(session(s.storage).state()).map(L => L.id), after);
+});
+
+test('An order can upgrade a stored toy and dismantle it back into the original inputs', () => {
+  const g = new E.Game(undefined, () => 1000000, () => .5);
+  const order = g.state.letters.find(L => L.difficulty === 'medium');
+  order.storyId = null;
+  order.want = [E.item('tech', 5)];
+  g.state.giftStore.push(E.item('tech', 2));
+  const module = g.state.board.indexOf(null);
+  g.state.board[module] = E.item('tech', 5);
+  const s = session(new Map([['pochta-workshops-v26', JSON.stringify(g.state)]]));
+  const $ = id => s.doc.getElementById(id);
+  $('letters').querySelector('[data-order="' + order.id + '"]').click();
+  const upgrade = $('recipe-items').querySelector('.upgrade-action');
+  assert(upgrade && !upgrade.disabled);
+  upgrade.click();
+  assert.equal(s.state().giftStore.length, 0);
+  assert.equal(s.state().board[module], null);
+  assert.equal(E.findOrder(s.state(), order.id).upgradePacked[0], 'remote-control');
+  assert(!$('recipe-send').disabled);
+  const restored = session(s.storage), doc = restored.doc;
+  doc.getElementById('letters').querySelector('[data-order="' + order.id + '"]').click();
+  doc.getElementById('recipe-items').querySelector('button').click();
+  const unpacked = restored.state();
+  assert(!E.findOrder(unpacked, order.id).packed[0]);
+  assert(unpacked.board.some(x => E.isGift(x) && x.gift.level === 2));
+  assert(unpacked.board.some(x => E.isItem(x) && x.chain === 'tech' && x.level === 5));
+  assert(E.validate(unpacked));
 });
